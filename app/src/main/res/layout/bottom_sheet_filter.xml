@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bg_white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Handle -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:background="@color/border"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="20dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Filter Products"
+            android:textSize="18sp"
+            android:textColor="@color/text_heading"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="20dp"/>
+
+        <!-- Type -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LISTING TYPE"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.08"
+            android:layout_marginBottom="8dp"/>
+
+        <RadioGroup
+            android:id="@+id/rgType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="20dp">
+
+            <RadioButton
+                android:id="@+id/rbAll"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="All"
+                android:checked="true"
+                android:buttonTint="@color/brand_indigo"/>
+
+            <RadioButton
+                android:id="@+id/rbBuy"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="For Sale"
+                android:buttonTint="@color/brand_indigo"/>
+
+            <RadioButton
+                android:id="@+id/rbRent"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="For Rent"
+                android:buttonTint="@color/brand_indigo"/>
+
+        </RadioGroup>
+
+        <!-- Sort -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SORT BY"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.08"
+            android:layout_marginBottom="8dp"/>
+
+        <RadioGroup
+            android:id="@+id/rgSort"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="20dp">
+
+            <RadioButton
+                android:id="@+id/rbSortNone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Default (Recent)"
+                android:checked="true"
+                android:buttonTint="@color/brand_indigo"/>
+
+            <RadioButton
+                android:id="@+id/rbSortLow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Price: Low to High"
+                android:buttonTint="@color/brand_indigo"/>
+
+            <RadioButton
+                android:id="@+id/rbSortHigh"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Price: High to Low"
+                android:buttonTint="@color/brand_indigo"/>
+                
+            <RadioButton
+                android:id="@+id/rbSortRatingHigh"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⭐ Highest Rated First"
+                android:buttonTint="@color/brand_indigo"/>
+                
+            <RadioButton
+                android:id="@+id/rbSortRatingLow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Lowest Rated First"
+                android:buttonTint="@color/brand_indigo"/>
+                
+            <RadioButton
+                android:id="@+id/rbSortMostReviewed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Most Reviewed First"
+                android:buttonTint="@color/brand_indigo"/>
+                
+            <RadioButton
+                android:id="@+id/rbSortRecommended"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✨ Recommended"
+                android:buttonTint="@color/brand_indigo"/>
+
+        </RadioGroup>
+        
+        <!-- Seller Rating Filter -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SELLER TRUST"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.08"
+            android:layout_marginBottom="8dp"/>
+
+        <RadioGroup
+            android:id="@+id/rgRating"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="20dp">
+
+            <RadioButton
+                android:id="@+id/rbRatingAll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="All Sellers"
+                android:checked="true"
+                android:buttonTint="@color/brand_indigo"/>
+
+            <RadioButton
+                android:id="@+id/rbRatingHighly"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⭐ Highly Rated (4.5+)"
+                android:buttonTint="@color/brand_indigo"/>
+
+            <RadioButton
+                android:id="@+id/rbRatingGood"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Good Sellers (4.0+)"
+                android:buttonTint="@color/brand_indigo"/>
+                
+            <RadioButton
+                android:id="@+id/rbRatingTrusted"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🛡️ Trusted (10+ reviews)"
+                android:buttonTint="@color/brand_indigo"/>
+                
+            <RadioButton
+                android:id="@+id/rbRatingNew"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="New Sellers"
+                android:buttonTint="@color/brand_indigo"/>
+
+        </RadioGroup>
+
+        <!-- Category -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CATEGORY"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.08"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/cgCategory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            android:layout_marginBottom="20dp"/>
+
+        <!-- Condition -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CONDITION"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.08"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/cgCondition"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnResetFilter"
+                style="@style/BtnOutline"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="Reset"
+                android:layout_marginEnd="8dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnApplyFilter"
+                style="@style/BtnPrimary"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="Apply"
+                android:layout_marginStart="8dp"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

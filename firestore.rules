@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone authenticated can read user profiles
+      allow read: if request.auth != null;
+      // Users can only write their own profile
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Products collection
+    match /products/{productId} {
+      // Anyone authenticated can read products
+      allow read: if request.auth != null;
+      // Anyone authenticated can create products
+      allow create: if request.auth != null;
+      // Only product owner can update or delete
+      allow update, delete: if request.auth != null && 
+                              request.auth.uid == resource.data.ownerId;
+    }
+    
+    // Orders collection
+    match /orders/{orderId} {
+      // Users can read orders where they are buyer or seller
+      allow read: if request.auth != null && 
+                     (request.auth.uid == resource.data.buyerId || 
+                      request.auth.uid == resource.data.sellerId);
+      // Anyone authenticated can create orders
+      allow create: if request.auth != null;
+      // Only seller can update order status
+      allow update: if request.auth != null && 
+                       request.auth.uid == resource.data.sellerId;
+    }
+    
+    // Chats collection
+    match /chats/{chatId} {
+      // Users can read and write their own chats
+      allow read, write: if request.auth != null;
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+    
+    // Messages collection (if used separately)
+    match /messages/{messageId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

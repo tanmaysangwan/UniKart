@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Screen Padding -->
+    <dimen name="screen_padding">20dp</dimen>
+    <dimen name="screen_padding_small">16dp</dimen>
+
+    <!-- Card -->
+    <dimen name="card_radius">20dp</dimen>
+    <dimen name="card_radius_small">12dp</dimen>
+    <dimen name="card_radius_large">28dp</dimen>
+    <dimen name="card_elevation">6dp</dimen>
+    <dimen name="card_elevation_small">2dp</dimen>
+
+    <!-- Button -->
+    <dimen name="btn_height">56dp</dimen>
+    <dimen name="btn_height_small">44dp</dimen>
+    <dimen name="btn_radius">16dp</dimen>
+    <dimen name="btn_radius_pill">28dp</dimen>
+
+    <!-- Input -->
+    <dimen name="input_height">56dp</dimen>
+    <dimen name="input_radius">14dp</dimen>
+
+    <!-- Spacing -->
+    <dimen name="space_xs">4dp</dimen>
+    <dimen name="space_sm">8dp</dimen>
+    <dimen name="space_md">16dp</dimen>
+    <dimen name="space_lg">24dp</dimen>
+    <dimen name="space_xl">32dp</dimen>
+    <dimen name="space_xxl">48dp</dimen>
+
+    <!-- Typography -->
+    <dimen name="text_display">36sp</dimen>
+    <dimen name="text_h1">28sp</dimen>
+    <dimen name="text_h2">22sp</dimen>
+    <dimen name="text_h3">18sp</dimen>
+    <dimen name="text_body_lg">16sp</dimen>
+    <dimen name="text_body">15sp</dimen>
+    <dimen name="text_caption">13sp</dimen>
+    <dimen name="text_label">12sp</dimen>
+
+    <!-- Icon -->
+    <dimen name="icon_size">24dp</dimen>
+    <dimen name="icon_size_sm">20dp</dimen>
+    <dimen name="icon_size_lg">32dp</dimen>
+
+    <!-- Bottom Nav -->
+    <dimen name="bottom_nav_height">64dp</dimen>
+
+    <!-- Avatar -->
+    <dimen name="avatar_size_lg">88dp</dimen>
+    <dimen name="avatar_size_md">56dp</dimen>
+    <dimen name="avatar_size_sm">40dp</dimen>
+</resources>

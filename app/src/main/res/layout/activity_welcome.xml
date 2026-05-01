@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_white">
+
+    <!-- Hero section: top 55% with gradient -->
+    <View
+        android:id="@+id/heroBackground"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_gradient_navy"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottomSheet"
+        app:layout_constraintHeight_percent="0.55"/>
+
+    <!-- Decorative circles in hero -->
+    <View
+        android:id="@+id/heroCircle1"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:alpha="0.07"
+        android:background="@drawable/bg_avatar_placeholder"
+        android:layout_marginTop="-50dp"
+        android:layout_marginEnd="-50dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <View
+        android:id="@+id/heroCircle2"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:alpha="0.05"
+        android:background="@drawable/bg_avatar_placeholder"
+        android:layout_marginStart="30dp"
+        android:layout_marginTop="120dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- Hero content -->
+    <LinearLayout
+        android:id="@+id/heroContent"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/screen_padding"
+        android:paddingEnd="@dimen/screen_padding"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottomSheet"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_bias="0.5">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textSize="48sp"
+            android:textColor="@color/text_white"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02"/>
+
+        <View
+            android:layout_width="48dp"
+            android:layout_height="3dp"
+            android:background="@drawable/bg_gradient_teal"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="20dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Buy, Rent &amp; Sell\nwithin your Campus"
+            android:textSize="22sp"
+            android:textColor="#E0E8FF"
+            android:fontFamily="sans-serif"
+            android:lineSpacingMultiplier="1.35"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_sub_tagline"
+            android:textSize="14sp"
+            android:textColor="#80AABBFF"
+            android:layout_marginTop="10dp"/>
+
+    </LinearLayout>
+
+    <!-- Bottom sheet -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/bottomSheet"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/bg_white"
+        android:paddingStart="@dimen/screen_padding"
+        android:paddingEnd="@dimen/screen_padding"
+        android:paddingTop="36dp"
+        android:paddingBottom="40dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintHeight_percent="0.45">
+
+        <!-- Pill handle -->
+        <View
+            android:id="@+id/pillHandle"
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:background="@color/border"
+            android:layout_marginBottom="28dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <TextView
+            android:id="@+id/tvGetStarted"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Get started"
+            android:textSize="@dimen/text_h2"
+            android:textColor="@color/text_heading"
+            android:fontFamily="sans-serif-medium"
+            app:layout_constraintTop_toBottomOf="@id/pillHandle"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <TextView
+            android:id="@+id/tvSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Join thousands of students buying\nand selling on campus"
+            android:textSize="@dimen/text_caption"
+            android:textColor="@color/text_secondary"
+            android:lineSpacingMultiplier="1.4"
+            android:layout_marginTop="6dp"
+            app:layout_constraintTop_toBottomOf="@id/tvGetStarted"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLogin"
+            style="@style/BtnPrimary"
+            android:text="@string/btn_login"
+            android:layout_marginTop="28dp"
+            app:layout_constraintTop_toBottomOf="@id/tvSubtitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRegister"
+            style="@style/BtnOutline"
+            android:text="@string/btn_register"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/btnLogin"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <TextView
+            android:id="@+id/btnDiagnostics"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Firebase Diagnostics"
+            android:textSize="12sp"
+            android:textColor="@color/text_hint"
+            android:paddingTop="16dp"
+            android:paddingBottom="8dp"
+            app:layout_constraintTop_toBottomOf="@id/btnRegister"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

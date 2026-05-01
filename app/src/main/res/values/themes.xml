@@ -1,0 +1,23 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.UniKart" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/brand_indigo</item>
+        <item name="colorPrimaryVariant">@color/brand_navy</item>
+        <item name="colorSecondary">@color/accent_teal</item>
+        <item name="colorSurface">@color/bg_white</item>
+        <item name="android:windowBackground">@color/bg_primary</item>
+        <item name="android:statusBarColor">@color/transparent</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="23">true</item>
+        <item name="android:textColorPrimary">@color/text_heading</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <style name="Theme.UniKart.Splash" parent="Theme.UniKart">
+        <item name="android:windowBackground">@color/brand_navy</item>
+        <item name="android:statusBarColor">@color/brand_navy</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="23">false</item>
+        <item name="android:navigationBarColor">@color/brand_navy</item>
+    </style>
+
+</resources>
