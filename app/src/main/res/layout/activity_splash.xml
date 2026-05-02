@@ -44,28 +44,14 @@
         app:layout_constraintVertical_chainStyle="packed"
         app:layout_constraintVertical_bias="0.45">
 
-        <!-- Logo icon circle -->
-        <FrameLayout
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:layout_gravity="center">
-
-            <View
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:alpha="0.15"
-                android:background="@drawable/bg_avatar_placeholder"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="U"
-                android:textSize="36sp"
-                android:textColor="@color/text_white"
-                android:fontFamily="sans-serif-medium"/>
-
-        </FrameLayout>
+        <!-- App icon -->
+        <ImageView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_gravity="center"
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="UniKart logo"
+            android:scaleType="fitCenter"/>
 
         <TextView
             android:id="@+id/tvAppName"

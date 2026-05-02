@@ -91,18 +91,33 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
             holder.tvDate.setText("");
         }
 
-        // Profile picture
-        if (review.getReviewerProfilePic() != null && !review.getReviewerProfilePic().isEmpty()) {
+        // Profile picture — use stored URL if available, otherwise fetch live from Firestore
+        String storedPic = review.getReviewerProfilePic();
+        String reviewerId = review.getReviewerId();
+
+        if (storedPic != null && !storedPic.isEmpty()) {
+            // Stored URL present — load it directly
             Glide.with(context)
-                    .load(review.getReviewerProfilePic())
+                    .load(storedPic)
                     .placeholder(R.drawable.bg_avatar_placeholder)
                     .circleCrop()
                     .into(holder.ivReviewerAvatar);
-        } else {
-            Glide.with(context)
-                    .load(R.drawable.bg_avatar_placeholder)
-                    .circleCrop()
-                    .into(holder.ivReviewerAvatar);
+        } else if (reviewerId != null && !reviewerId.isEmpty()) {
+            // No stored URL — fetch the reviewer's current profile picture from Firestore
+            com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    .collection(Constants.COLLECTION_USERS)
+                    .document(reviewerId)
+                    .get()
+                    .addOnSuccessListener(doc -> {
+                        String liveUrl = doc.getString("profilePicture");
+                        if (liveUrl != null && !liveUrl.isEmpty()) {
+                            Glide.with(context)
+                                    .load(liveUrl)
+                                    .placeholder(R.drawable.bg_avatar_placeholder)
+                                    .circleCrop()
+                                    .into(holder.ivReviewerAvatar);
+                        }
+                    });
         }
     }
 
