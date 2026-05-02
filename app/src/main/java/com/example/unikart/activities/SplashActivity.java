@@ -9,6 +9,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.unikart.R;
 import com.example.unikart.firebase.FirebaseManager;
+import com.example.unikart.utils.Constants;
+import com.example.unikart.utils.NotificationHelper;
 import com.example.unikart.utils.SessionManager;
 
 public class SplashActivity extends AppCompatActivity {
@@ -24,17 +26,47 @@ public class SplashActivity extends AppCompatActivity {
         FirebaseManager firebaseManager = FirebaseManager.getInstance();
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            Intent intent;
-            // Check both Firebase Auth and Session Manager
             if (firebaseManager.isUserLoggedIn() && sessionManager.isLoggedIn()) {
-                intent = new Intent(SplashActivity.this, HomeActivity.class);
+                // User is authenticated — check if we were launched from a notification tap
+                Intent deepLink = resolveNotificationDeepLink();
+                if (deepLink != null) {
+                    startActivity(deepLink);
+                } else {
+                    startActivity(new Intent(SplashActivity.this, HomeActivity.class));
+                }
             } else {
-                // Clear session if Firebase auth is not valid
                 sessionManager.logout();
-                intent = new Intent(SplashActivity.this, WelcomeActivity.class);
+                startActivity(new Intent(SplashActivity.this, WelcomeActivity.class));
             }
-            startActivity(intent);
             finish();
         }, SPLASH_DELAY_MS);
+    }
+
+    /**
+     * Checks whether this activity was launched by tapping a notification.
+     * If so, builds and returns the correct deep-link intent.
+     * Returns null if this is a normal app launch.
+     */
+    private Intent resolveNotificationDeepLink() {
+        Intent incoming = getIntent();
+        if (incoming == null) return null;
+
+        String notifType = incoming.getStringExtra(NotificationHelper.EXTRA_NOTIF_TYPE);
+        if (notifType == null) return null;
+
+        if (Constants.NOTIF_TYPE_CHAT.equals(notifType)) {
+            String chatId     = incoming.getStringExtra(NotificationHelper.EXTRA_CHAT_ID);
+            String senderName = incoming.getStringExtra(NotificationHelper.EXTRA_SELLER_NAME);
+            if (chatId == null) chatId = incoming.getStringExtra("chat_id");
+            return NotificationHelper.buildChatIntent(this, chatId, senderName);
+        }
+
+        if (Constants.NOTIF_TYPE_ORDER.equals(notifType)) {
+            boolean openSellerTab = incoming.getBooleanExtra(
+                    NotificationHelper.EXTRA_OPEN_SELLER_TAB, false);
+            return NotificationHelper.buildOrderIntent(this, openSellerTab);
+        }
+
+        return null;
     }
 }

@@ -39,7 +39,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
     @Override
     public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
         if (position < messages.size()) {
-            holder.bind(messages.get(position));
+            holder.bind(messages.get(position), position);
         }
     }
 
@@ -50,41 +50,76 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
 
     class MessageViewHolder extends RecyclerView.ViewHolder {
         private final LinearLayout bubbleContainer;
+        private final LinearLayout bubble;
         private final TextView tvMessage;
         private final TextView tvTime;
 
         MessageViewHolder(@NonNull View itemView) {
             super(itemView);
             bubbleContainer = itemView.findViewById(R.id.bubbleContainer);
-            tvMessage = itemView.findViewById(R.id.tvMessage);
-            tvTime = itemView.findViewById(R.id.tvTime);
+            bubble          = itemView.findViewById(R.id.bubble);
+            tvMessage       = itemView.findViewById(R.id.tvMessage);
+            tvTime          = itemView.findViewById(R.id.tvTime);
         }
 
-        void bind(ChatMessage message) {
+        void bind(ChatMessage message, int position) {
             if (message == null) return;
 
             tvMessage.setText(message.getText());
 
-            // Format time
+            // Time inside bubble, bottom-right
             if (message.getSentAt() > 0) {
-                String time = new SimpleDateFormat("hh:mm a", Locale.getDefault())
-                        .format(new Date(message.getSentAt()));
-                tvTime.setText(time);
+                tvTime.setText(new SimpleDateFormat("h:mm a", Locale.getDefault())
+                        .format(new Date(message.getSentAt())));
+                tvTime.setVisibility(View.VISIBLE);
+            } else {
+                tvTime.setVisibility(View.GONE);
             }
 
-            boolean isMine = currentUserId != null && currentUserId.equals(message.getSenderId());
+            boolean isMine = currentUserId != null
+                    && currentUserId.equals(message.getSenderId());
+
+            // Determine if this is the last message in a consecutive run
+            // (used for tail vs no-tail bubble shape)
+            boolean isLastInGroup = isLastInGroup(position);
 
             if (isMine) {
+                // Sent — right side, indigo gradient bubble
                 bubbleContainer.setGravity(Gravity.END);
-                tvMessage.setBackgroundResource(R.drawable.bg_chat_bubble_sent);
+                bubble.setBackgroundResource(isLastInGroup
+                        ? R.drawable.bg_chat_bubble_sent
+                        : R.drawable.bg_chat_bubble_sent_notail);
                 tvMessage.setTextColor(0xFFFFFFFF);
-                tvTime.setGravity(Gravity.END);
+                tvTime.setTextColor(0xAAFFFFFF);
+
+                LinearLayout.LayoutParams params =
+                        (LinearLayout.LayoutParams) bubble.getLayoutParams();
+                params.setMarginStart(60);
+                params.setMarginEnd(0);
+                bubble.setLayoutParams(params);
             } else {
+                // Received — left side, white bubble
                 bubbleContainer.setGravity(Gravity.START);
-                tvMessage.setBackgroundResource(R.drawable.bg_chat_bubble_received);
+                bubble.setBackgroundResource(isLastInGroup
+                        ? R.drawable.bg_chat_bubble_received
+                        : R.drawable.bg_chat_bubble_received_notail);
                 tvMessage.setTextColor(0xFF1A1A2E);
-                tvTime.setGravity(Gravity.START);
+                tvTime.setTextColor(0xFF999999);
+
+                LinearLayout.LayoutParams params =
+                        (LinearLayout.LayoutParams) bubble.getLayoutParams();
+                params.setMarginStart(0);
+                params.setMarginEnd(60);
+                bubble.setLayoutParams(params);
             }
+        }
+
+        /** True if the next message is from a different sender (or this is the last message). */
+        private boolean isLastInGroup(int position) {
+            if (position >= messages.size() - 1) return true;
+            ChatMessage current = messages.get(position);
+            ChatMessage next    = messages.get(position + 1);
+            return !current.getSenderId().equals(next.getSenderId());
         }
     }
 }

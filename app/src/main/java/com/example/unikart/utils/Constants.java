@@ -59,6 +59,16 @@ public class Constants {
     public static final int MIN_PRODUCT_PRICE = 1;
     public static final int MAX_PRODUCT_PRICE = 100000;
 
+    // Notification Channels
+    public static final String CHANNEL_ID_CHAT   = "unikart_chat";
+    public static final String CHANNEL_ID_ORDERS = "unikart_orders";
+    public static final String CHANNEL_NAME_CHAT   = "Chat Messages";
+    public static final String CHANNEL_NAME_ORDERS = "Order Updates";
+
+    // Notification Types (used as FCM data keys)
+    public static final String NOTIF_TYPE_CHAT  = "chat";
+    public static final String NOTIF_TYPE_ORDER = "order";
+
     private Constants() {}
 
     public static boolean isValidUniversityEmail(String email) {

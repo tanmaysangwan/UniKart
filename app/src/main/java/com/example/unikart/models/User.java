@@ -8,6 +8,7 @@ public class User {
     private double rating;
     private int reviewCount;
     private long createdAt;
+    private String fcmToken;
 
     public User() {
     }
@@ -76,5 +77,13 @@ public class User {
 
     public void setCreatedAt(long createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getFcmToken() {
+        return fcmToken;
+    }
+
+    public void setFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 }

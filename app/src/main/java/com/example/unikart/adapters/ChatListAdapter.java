@@ -43,8 +43,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
     @Override
     public void onBindViewHolder(@NonNull ChatViewHolder holder, int position) {
-        ChatThread thread = chatThreads.get(position);
-        holder.bind(thread);
+        holder.bind(chatThreads.get(position));
     }
 
     @Override
@@ -54,45 +53,59 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
     class ChatViewHolder extends RecyclerView.ViewHolder {
         private final TextView tvName;
+        private final TextView tvAvatarInitial;
         private final TextView tvProductTitle;
         private final TextView tvLastMessage;
         private final TextView tvTime;
 
         public ChatViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvName = itemView.findViewById(R.id.tvName);
-            tvProductTitle = itemView.findViewById(R.id.tvProductTitle);
-            tvLastMessage = itemView.findViewById(R.id.tvLastMessage);
-            tvTime = itemView.findViewById(R.id.tvTime);
+            tvName          = itemView.findViewById(R.id.tvName);
+            tvAvatarInitial = itemView.findViewById(R.id.tvAvatarInitial);
+            tvProductTitle  = itemView.findViewById(R.id.tvProductTitle);
+            tvLastMessage   = itemView.findViewById(R.id.tvLastMessage);
+            tvTime          = itemView.findViewById(R.id.tvTime);
         }
 
         public void bind(ChatThread thread) {
-            // Show other person's name
-            String displayName = thread.getSellerId().equals(currentUserId)
-                    ? "Buyer"
-                    : thread.getSellerName();
+            // Show the OTHER person's name
+            boolean iAmSeller = thread.getSellerId() != null
+                    && thread.getSellerId().equals(currentUserId);
+            String displayName = iAmSeller ? thread.getBuyerName() : thread.getSellerName();
+            if (displayName == null || displayName.isEmpty()) displayName = iAmSeller ? "Buyer" : "Seller";
             tvName.setText(displayName);
 
-            tvProductTitle.setText(thread.getProductTitle() != null && !thread.getProductTitle().isEmpty()
-                    ? thread.getProductTitle()
-                    : "General Chat");
+            // Avatar initial — first letter of display name, uppercase
+            tvAvatarInitial.setText(String.valueOf(displayName.charAt(0)).toUpperCase());
 
-            tvLastMessage.setText(thread.getLastMessage() != null && !thread.getLastMessage().isEmpty()
-                    ? thread.getLastMessage()
-                    : "No messages yet");
+            // Product tag
+            String product = thread.getProductTitle();
+            if (product != null && !product.isEmpty()) {
+                tvProductTitle.setVisibility(View.VISIBLE);
+                tvProductTitle.setText(product);
+            } else {
+                tvProductTitle.setVisibility(View.GONE);
+            }
 
-            CharSequence timeAgo = DateUtils.getRelativeTimeSpanString(
-                    thread.getLastMessageAt(),
-                    System.currentTimeMillis(),
-                    DateUtils.MINUTE_IN_MILLIS,
-                    DateUtils.FORMAT_ABBREV_RELATIVE
-            );
-            tvTime.setText(timeAgo);
+            // Last message preview
+            String last = thread.getLastMessage();
+            tvLastMessage.setText((last != null && !last.isEmpty()) ? last : "No messages yet");
+
+            // Relative time (e.g. "2 min ago", "Yesterday")
+            if (thread.getLastMessageAt() > 0) {
+                CharSequence timeAgo = DateUtils.getRelativeTimeSpanString(
+                        thread.getLastMessageAt(),
+                        System.currentTimeMillis(),
+                        DateUtils.MINUTE_IN_MILLIS,
+                        DateUtils.FORMAT_ABBREV_RELATIVE
+                );
+                tvTime.setText(timeAgo);
+            } else {
+                tvTime.setText("");
+            }
 
             itemView.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onChatClick(thread);
-                }
+                if (listener != null) listener.onChatClick(thread);
             });
         }
     }
