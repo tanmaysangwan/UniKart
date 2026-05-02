@@ -54,8 +54,8 @@ public class ProfileActivity extends AppCompatActivity {
     private OrderRepository orderRepository;
     private View rootView;
 
-    private TextView tvListingsCount;
-    private TextView tvOrdersCount;
+    private TextView tvBoughtCount;
+    private TextView tvSoldCount;
     private TextView tvRating;
     private TextView tvUserName;
     private TextView tvStudentId;
@@ -159,9 +159,9 @@ public class ProfileActivity extends AppCompatActivity {
         tvUserName = findViewById(R.id.tvUserName);
         tvStudentId = findViewById(R.id.tvStudentId);
 
-        tvListingsCount = findStatCount(0);
-        tvOrdersCount   = findStatCount(1);
-        tvRating        = findStatCount(2);
+        tvBoughtCount = findViewById(R.id.tvBoughtCount);
+        tvSoldCount   = findViewById(R.id.tvSoldCount);
+        tvRating      = findViewById(R.id.tvRating);
 
         // Edit Profile button
         if (btnEditProfile != null) {
@@ -447,20 +447,28 @@ public class ProfileActivity extends AppCompatActivity {
 
         FirebaseFirestore db = FirebaseManager.getInstance().getFirestore();
 
-        // Listings count
-        db.collection(Constants.COLLECTION_PRODUCTS)
-                .whereEqualTo("ownerId", uid)
-                .get()
-                .addOnSuccessListener(snap -> {
-                    if (tvListingsCount != null) tvListingsCount.setText(String.valueOf(snap.size()));
-                });
-
-        // Orders count (as buyer)
+        // Bought count (completed orders as buyer)
         db.collection(Constants.COLLECTION_ORDERS)
                 .whereEqualTo("buyerId", uid)
+                .whereIn("status", java.util.Arrays.asList(
+                    Constants.ORDER_STATUS_COMPLETED,
+                    Constants.ORDER_STATUS_RETURNED
+                ))
                 .get()
                 .addOnSuccessListener(snap -> {
-                    if (tvOrdersCount != null) tvOrdersCount.setText(String.valueOf(snap.size()));
+                    if (tvBoughtCount != null) tvBoughtCount.setText(String.valueOf(snap.size()));
+                });
+
+        // Sold count (completed orders as seller)
+        db.collection(Constants.COLLECTION_ORDERS)
+                .whereEqualTo("sellerId", uid)
+                .whereIn("status", java.util.Arrays.asList(
+                    Constants.ORDER_STATUS_COMPLETED,
+                    Constants.ORDER_STATUS_RETURNED
+                ))
+                .get()
+                .addOnSuccessListener(snap -> {
+                    if (tvSoldCount != null) tvSoldCount.setText(String.valueOf(snap.size()));
                 });
 
         // Rating from Firestore user doc

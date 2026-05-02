@@ -50,7 +50,8 @@ public class UserProfileActivity extends AppCompatActivity {
     private TextView tvUserName;
     private TextView tvUniversity;
     private TextView tvStudentId;
-    private TextView tvListingsCount;
+    private TextView tvBoughtCount;
+    private TextView tvSoldCount;
     private TextView tvRating;
     private TextView tvReviewCount;
     private TextView tvAverageRating;
@@ -95,7 +96,8 @@ public class UserProfileActivity extends AppCompatActivity {
         tvUserName       = findViewById(R.id.tvUserName);
         tvUniversity     = findViewById(R.id.tvUniversity);
         tvStudentId      = findViewById(R.id.tvStudentId);
-        tvListingsCount  = findViewById(R.id.tvListingsCount);
+        tvBoughtCount    = findViewById(R.id.tvBoughtCount);
+        tvSoldCount      = findViewById(R.id.tvSoldCount);
         tvRating         = findViewById(R.id.tvRating);
         tvReviewCount    = findViewById(R.id.tvReviewCount);
         tvAverageRating  = findViewById(R.id.tvAverageRating);
@@ -202,16 +204,32 @@ public class UserProfileActivity extends AppCompatActivity {
 
     private void loadStats() {
         FirebaseFirestore db = FirebaseManager.getInstance().getFirestore();
-        db.collection(Constants.COLLECTION_PRODUCTS)
-                .whereEqualTo("ownerId", targetUserId)
-                .whereEqualTo("isAvailable", true)
+        
+        // Bought count (completed orders as buyer)
+        db.collection(Constants.COLLECTION_ORDERS)
+                .whereEqualTo("buyerId", targetUserId)
+                .whereIn("status", java.util.Arrays.asList(
+                    Constants.ORDER_STATUS_COMPLETED,
+                    Constants.ORDER_STATUS_RETURNED
+                ))
                 .get()
                 .addOnSuccessListener(snap -> {
-                    if (tvListingsCount != null) {
-                        tvListingsCount.setText(String.valueOf(snap.size()));
-                    }
+                    if (tvBoughtCount != null) tvBoughtCount.setText(String.valueOf(snap.size()));
                 })
-                .addOnFailureListener(e -> Log.w(TAG, "loadStats listings failed", e));
+                .addOnFailureListener(e -> Log.w(TAG, "loadStats bought failed", e));
+
+        // Sold count (completed orders as seller)
+        db.collection(Constants.COLLECTION_ORDERS)
+                .whereEqualTo("sellerId", targetUserId)
+                .whereIn("status", java.util.Arrays.asList(
+                    Constants.ORDER_STATUS_COMPLETED,
+                    Constants.ORDER_STATUS_RETURNED
+                ))
+                .get()
+                .addOnSuccessListener(snap -> {
+                    if (tvSoldCount != null) tvSoldCount.setText(String.valueOf(snap.size()));
+                })
+                .addOnFailureListener(e -> Log.w(TAG, "loadStats sold failed", e));
     }
 
     private void loadReviews() {

@@ -15,6 +15,9 @@ public class Product {
     
     // Rent-specific
     private int maxRentDays;
+    
+    // Availability
+    private boolean available = true;
 
     // Seller rating info (loaded from seller's user document)
     private double sellerRating;
@@ -70,6 +73,9 @@ public class Product {
     
     public int getMaxRentDays()             { return maxRentDays; }
     public void setMaxRentDays(int d)       { this.maxRentDays = d; }
+    
+    public boolean isAvailable()            { return available; }
+    public void setAvailable(boolean a)     { this.available = a; }
 
     public double getSellerRating()         { return sellerRating; }
     public void setSellerRating(double r)   { this.sellerRating = r; }

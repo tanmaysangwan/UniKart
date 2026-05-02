@@ -63,7 +63,7 @@ public class ProductRepository {
         productData.put("category", category != null ? category : Constants.CATEGORY_OTHER);
         productData.put("condition", condition != null ? condition : "Good");
         productData.put("imageUrl", imageUrl != null ? imageUrl : "");
-        productData.put("isAvailable", true);
+        productData.put("available", true);
         productData.put("createdAt", System.currentTimeMillis());
         if (Constants.PRODUCT_TYPE_RENT.equals(type) && maxRentDays > 0) {
             productData.put("maxRentDays", maxRentDays);
@@ -261,6 +261,24 @@ public class ProductRepository {
                 });
     }
 
+    // ─── Update Product Availability ──────────────────────────────────────────
+
+    public void updateProductAvailability(String productId, boolean available, ProductCallback callback) {
+        Map<String, Object> update = new HashMap<>();
+        update.put("available", available);
+        
+        firestore.collection(Constants.COLLECTION_PRODUCTS).document(productId)
+                .update(update)
+                .addOnSuccessListener(v -> {
+                    Log.d(TAG, "Product " + productId + " availability → " + available);
+                    callback.onSuccess("Product availability updated");
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "updateProductAvailability failed", e);
+                    callback.onFailure("Failed to update availability: " + e.getMessage());
+                });
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private Product mapDocToProduct(com.google.firebase.firestore.DocumentSnapshot doc) {
@@ -283,6 +301,9 @@ public class ProductRepository {
 
         Long createdAt = doc.getLong("createdAt");
         p.setTimestamp(createdAt != null ? createdAt : 0L);
+        
+        Boolean available = doc.getBoolean("available");
+        p.setAvailable(available != null ? available : true); // default true for old products
 
         return p;
     }

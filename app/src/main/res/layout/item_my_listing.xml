@@ -140,6 +140,7 @@
 
         <!-- Action buttons -->
         <LinearLayout
+            android:id="@+id/llActions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
@@ -178,6 +179,23 @@
                 app:iconTint="#D32F2F"/>
 
         </LinearLayout>
+
+        <!-- Mark Available button (shown only when unavailable) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMarkAvailable"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:text="Mark Available"
+            android:textSize="13sp"
+            android:textColor="@color/text_white"
+            app:backgroundTint="@color/brand_indigo"
+            app:cornerRadius="10dp"
+            app:icon="@android:drawable/ic_menu_revert"
+            app:iconSize="16dp"
+            app:iconTint="@color/text_white"
+            android:visibility="gone"
+            android:layout_marginTop="8dp"/>
 
     </LinearLayout>
 

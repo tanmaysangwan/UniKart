@@ -132,6 +132,10 @@ public class OrderRepository {
                 .update(update)
                 .addOnSuccessListener(v -> {
                     Log.d(TAG, "Order " + orderId + " → " + newStatus);
+                    
+                    // Update product availability based on status
+                    updateProductAvailabilityForOrder(orderId, newStatus);
+                    
                     // Send push notification to the relevant party
                     sendOrderStatusNotification(orderId, newStatus);
                     callback.onSuccess(newStatus);
@@ -140,6 +144,36 @@ public class OrderRepository {
                     Log.e(TAG, "updateOrderStatus failed", e);
                     callback.onFailure("Failed to update order: " + e.getMessage());
                 });
+    }
+    
+    /**
+     * Update product availability based on order status:
+     * - ACCEPTED: mark unavailable (item is now in transaction)
+     * - For both BUY and RENT: stays unavailable after completion/return
+     *   (seller must manually re-list via "Mark Available" button)
+     */
+    private void updateProductAvailabilityForOrder(String orderId, String newStatus) {
+        firestore.collection(Constants.COLLECTION_ORDERS).document(orderId).get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) return;
+                    
+                    String productId = doc.getString("productId");
+                    if (productId == null || productId.isEmpty()) return;
+                    
+                    // Only mark unavailable when order is accepted
+                    // Never auto-mark available - seller must do it manually
+                    if (Constants.ORDER_STATUS_ACCEPTED.equals(newStatus)) {
+                        Map<String, Object> productUpdate = new HashMap<>();
+                        productUpdate.put("available", false);
+                        firestore.collection(Constants.COLLECTION_PRODUCTS).document(productId)
+                                .update(productUpdate)
+                                .addOnSuccessListener(v2 -> 
+                                    Log.d(TAG, "Product " + productId + " marked unavailable"))
+                                .addOnFailureListener(e -> 
+                                    Log.w(TAG, "Failed to update product availability", e));
+                    }
+                })
+                .addOnFailureListener(e -> Log.w(TAG, "Could not fetch order for availability update", e));
     }
 
     /**
@@ -311,6 +345,28 @@ public class OrderRepository {
         String reviewerId = firebaseManager.getCurrentUserId();
         if (reviewerId == null) { callback.onFailure("Not logged in"); return; }
 
+        // Guard: prevent duplicate reviews for the same order by the same reviewer
+        firestore.collection(Constants.COLLECTION_REVIEWS)
+                .whereEqualTo("orderId", orderId)
+                .whereEqualTo("reviewerId", reviewerId)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(existing -> {
+                    if (!existing.isEmpty()) {
+                        callback.onFailure("You have already reviewed this order.");
+                        return;
+                    }
+                    doSubmitReview(orderId, productId, revieweeId, rating, comment, reviewerId, callback);
+                })
+                .addOnFailureListener(e -> {
+                    // If check fails, proceed anyway (UI already guards this)
+                    doSubmitReview(orderId, productId, revieweeId, rating, comment, reviewerId, callback);
+                });
+    }
+
+    private void doSubmitReview(String orderId, String productId, String revieweeId,
+                                float rating, String comment, String reviewerId, OrderCallback callback) {
+
         // Fetch reviewer info and order info in parallel
         firestore.collection(Constants.COLLECTION_USERS).document(reviewerId).get()
                 .addOnSuccessListener(userDoc -> {
@@ -394,6 +450,22 @@ public class OrderRepository {
                     update.put("reviewCount", count);
                     firestore.collection(Constants.COLLECTION_USERS).document(userId).update(update);
                 });
+    }
+
+    // ─── Check if reviewer already reviewed this order ───────────────────────
+
+    public interface HasReviewedCallback {
+        void onResult(boolean hasReviewed);
+    }
+
+    public void hasReviewedOrder(String orderId, String reviewerId, HasReviewedCallback callback) {
+        firestore.collection(Constants.COLLECTION_REVIEWS)
+                .whereEqualTo("orderId", orderId)
+                .whereEqualTo("reviewerId", reviewerId)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(snap -> callback.onResult(!snap.isEmpty()))
+                .addOnFailureListener(e -> callback.onResult(false)); // fail open — guard in submit too
     }
 
     // ─── Get Reviews for User ─────────────────────────────────────────────────

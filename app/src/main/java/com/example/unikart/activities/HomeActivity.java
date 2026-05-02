@@ -126,6 +126,13 @@ public class HomeActivity extends AppCompatActivity {
         if (btnFilter != null) {
             btnFilter.setOnClickListener(v -> showFilterSheet());
         }
+
+        ImageView ivAvatar = findViewById(R.id.ivAvatar);
+        if (ivAvatar != null) {
+            ivAvatar.setOnClickListener(v -> {
+                startActivity(new Intent(HomeActivity.this, ProfileActivity.class));
+            });
+        }
     }
 
     /**
@@ -495,6 +502,7 @@ public class HomeActivity extends AppCompatActivity {
                 showLoading(false);
 
                 // Silently purge any leftover Campus Store seed listings
+                // Keep unavailable products visible but marked
                 List<Product> clean = new ArrayList<>();
                 for (Product p : products) {
                     if ("Campus Store".equals(p.getSellerName())) {
@@ -503,6 +511,7 @@ public class HomeActivity extends AppCompatActivity {
                                 .document(p.getId())
                                 .delete();
                     } else {
+                        // Show all products, including unavailable ones
                         clean.add(p);
                     }
                 }

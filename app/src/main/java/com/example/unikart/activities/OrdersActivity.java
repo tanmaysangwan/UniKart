@@ -61,9 +61,6 @@ public class OrdersActivity extends AppCompatActivity {
         tvEmpty     = findViewById(R.id.tvEmpty);
         bottomNavigation = findViewById(R.id.bottomNavigation);
 
-        ImageButton btnBack = findViewById(R.id.btnBack);
-        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
-
         rvOrders.setLayoutManager(new LinearLayoutManager(this));
         orderAdapter = new OrderAdapter(orderList);
         rvOrders.setAdapter(orderAdapter);
@@ -128,6 +125,10 @@ public class OrdersActivity extends AppCompatActivity {
             public void onSuccess(List<Order> orders) {
                 progressBar.setVisibility(View.GONE);
                 orderList.clear();
+                
+                // Sort by most recent first (updatedAt descending)
+                orders.sort((o1, o2) -> Long.compare(o2.getUpdatedAt(), o1.getUpdatedAt()));
+                
                 orderList.addAll(orders);
                 orderAdapter.notifyDataSetChanged();
                 tvEmpty.setVisibility(orders.isEmpty() ? View.VISIBLE : View.GONE);
@@ -222,7 +223,30 @@ public class OrdersActivity extends AppCompatActivity {
                 if (action != null) {
                     btnAction.setVisibility(View.VISIBLE);
                     btnAction.setText(action);
+                    btnAction.setEnabled(true);
+                    btnAction.setAlpha(1f);
                     btnAction.setOnClickListener(v -> handleAction(order, isBuyer));
+
+                    // For completed/returned orders, check if already reviewed
+                    boolean isFinished = Constants.ORDER_STATUS_COMPLETED.equals(order.getStatus())
+                            || Constants.ORDER_STATUS_RETURNED.equals(order.getStatus());
+                    if (isFinished) {
+                        btnAction.setEnabled(false); // disable while checking
+                        orderRepository.hasReviewedOrder(order.getOrderId(), currentUserId,
+                                hasReviewed -> {
+                                    if (hasReviewed) {
+                                        btnAction.setText("Reviewed ✓");
+                                        btnAction.setEnabled(false);
+                                        btnAction.setAlpha(0.5f);
+                                        btnAction.setOnClickListener(null);
+                                    } else {
+                                        btnAction.setText("Leave Review");
+                                        btnAction.setEnabled(true);
+                                        btnAction.setAlpha(1f);
+                                        btnAction.setOnClickListener(v -> handleAction(order, isBuyer));
+                                    }
+                                });
+                    }
                 } else {
                     btnAction.setVisibility(View.GONE);
                 }
@@ -327,6 +351,11 @@ public class OrdersActivity extends AppCompatActivity {
                                     new OrderRepository.OrderCallback() {
                                         @Override public void onSuccess(String msg) {
                                             Snackbar.make(rvOrders, "Review submitted!", Snackbar.LENGTH_SHORT).show();
+                                            // Immediately mark button as reviewed
+                                            btnAction.setText("Reviewed ✓");
+                                            btnAction.setEnabled(false);
+                                            btnAction.setAlpha(0.5f);
+                                            btnAction.setOnClickListener(null);
                                         }
                                         @Override public void onFailure(String err) {
                                             Snackbar.make(rvOrders, "Failed: " + err, Snackbar.LENGTH_SHORT).show();

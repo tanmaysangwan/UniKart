@@ -183,6 +183,7 @@ public class ProductDetailActivity extends AppCompatActivity {
         tvSellerName.setText(product.getSellerName());
 
         boolean isRent = Constants.PRODUCT_TYPE_RENT.equals(product.getType());
+        boolean isAvailable = product.isAvailable();
 
         // Price label — show "per day" for rent items
         if (isRent) {
@@ -212,7 +213,7 @@ public class ProductDetailActivity extends AppCompatActivity {
         String currentUserId = sessionManager.getUserId();
         boolean isOwner = currentUserId != null && currentUserId.equals(product.getSellerId());
         
-        // Show/hide buttons based on ownership
+        // Show/hide buttons based on ownership and availability
         if (isOwner) {
             // Owner sees Edit button, no Chat/Request buttons
             if (btnEdit != null) btnEdit.setVisibility(View.VISIBLE);
@@ -221,10 +222,26 @@ public class ProductDetailActivity extends AppCompatActivity {
         } else {
             // Non-owner sees Chat/Request buttons, no Edit button
             if (btnEdit != null) btnEdit.setVisibility(View.GONE);
+            
+            // Chat button always visible (even for unavailable items - for future bookings)
             if (btnChat != null) btnChat.setVisibility(View.VISIBLE);
+            
             if (btnRequest != null) {
                 btnRequest.setVisibility(View.VISIBLE);
-                btnRequest.setText(isRent ? "Rent Now" : "Buy Now");
+                if (!isAvailable) {
+                    // Disable buy/rent button if unavailable, but show appropriate message
+                    if (isRent) {
+                        btnRequest.setText("Currently Rented");
+                    } else {
+                        btnRequest.setText("Sold Out");
+                    }
+                    btnRequest.setEnabled(false);
+                    btnRequest.setAlpha(0.5f);
+                } else {
+                    btnRequest.setText(isRent ? "Rent Now" : "Buy Now");
+                    btnRequest.setEnabled(true);
+                    btnRequest.setAlpha(1f);
+                }
             }
         }
         
@@ -249,7 +266,17 @@ public class ProductDetailActivity extends AppCompatActivity {
                     .into(ivProductImage);
         }
 
-        if (Constants.PRODUCT_TYPE_BUY.equals(product.getType())) {
+        // Badge — show unavailable or buy/rent
+        if (!isAvailable) {
+            if (isRent) {
+                tvBadge.setText("RENTED OUT");
+            } else {
+                tvBadge.setText("SOLD OUT");
+            }
+            tvBadge.setTextColor(ContextCompat.getColor(this, R.color.text_hint));
+            Drawable bg = ContextCompat.getDrawable(this, R.drawable.bg_icon_container);
+            tvBadge.setBackground(bg);
+        } else if (Constants.PRODUCT_TYPE_BUY.equals(product.getType())) {
             tvBadge.setText(R.string.badge_buy);
             tvBadge.setTextColor(ContextCompat.getColor(this, R.color.badge_buy_text));
             Drawable bg = ContextCompat.getDrawable(this, R.drawable.bg_badge_sale);

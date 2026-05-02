@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.unikart.R;
+import com.example.unikart.firebase.ProductRepository;
 import com.example.unikart.models.Product;
 import com.example.unikart.utils.Constants;
 import com.example.unikart.utils.SessionManager;
@@ -45,6 +46,7 @@ public class MyListingsActivity extends AppCompatActivity {
     private MyListingAdapter adapter;
     private final List<Product> products = new ArrayList<>();
     private SessionManager sessionManager;
+    private com.google.android.material.bottomnavigation.BottomNavigationView bottomNavigation;
 
     // Refresh after returning from EditListingActivity
     private final ActivityResultLauncher<Intent> editLauncher = registerForActivityResult(
@@ -83,10 +85,14 @@ public class MyListingsActivity extends AppCompatActivity {
                 products,
                 product -> openProductDetail(product),   // card tap → detail view
                 product -> openEdit(product),            // edit button
-                product -> confirmDelete(product)        // delete button
+                product -> confirmDelete(product),       // delete button
+                product -> markProductAvailable(product) // mark available button
         );
         rvListings.setLayoutManager(new LinearLayoutManager(this));
         rvListings.setAdapter(adapter);
+
+        bottomNavigation = findViewById(R.id.bottomNavigation);
+        setupBottomNavigation();
 
         loadMyProducts();
     }
@@ -211,6 +217,58 @@ public class MyListingsActivity extends AppCompatActivity {
                 .addOnFailureListener(e ->
                         Snackbar.make(rvListings, "Delete failed: " + e.getMessage(), Snackbar.LENGTH_LONG).show());
     }
+    
+    private void markProductAvailable(Product product) {
+        new ProductRepository().updateProductAvailability(product.getId(), true,
+                new ProductRepository.ProductCallback() {
+                    @Override
+                    public void onSuccess(String message) {
+                        Snackbar.make(rvListings, "Product marked as available", Snackbar.LENGTH_SHORT).show();
+                        product.setAvailable(true);
+                        adapter.notifyDataSetChanged();
+                    }
+                    @Override
+                    public void onFailure(String error) {
+                        Snackbar.make(rvListings, "Failed: " + error, Snackbar.LENGTH_LONG).show();
+                    }
+                });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // Bottom Navigation
+
+    private void setupBottomNavigation() {
+        bottomNavigation.setSelectedItemId(R.id.nav_profile); // closest — accessed from Profile
+        bottomNavigation.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_home) {
+                startActivity(new Intent(this, HomeActivity.class));
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                return true;
+            }
+            if (id == R.id.nav_add) {
+                startActivity(new Intent(this, AddProductActivity.class));
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                return true;
+            }
+            if (id == R.id.nav_chat) {
+                startActivity(new Intent(this, ChatsListActivity.class));
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                return true;
+            }
+            if (id == R.id.nav_orders) {
+                startActivity(new Intent(this, OrdersActivity.class));
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                return true;
+            }
+            if (id == R.id.nav_profile) {
+                startActivity(new Intent(this, ProfileActivity.class));
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                return true;
+            }
+            return false;
+        });
+    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // Adapter
@@ -221,13 +279,14 @@ public class MyListingsActivity extends AppCompatActivity {
         interface Action { void run(Product p); }
 
         private final List<Product> items;
-        private final Action onTap, onEdit, onDelete;
+        private final Action onTap, onEdit, onDelete, onMarkAvailable;
 
-        MyListingAdapter(List<Product> items, Action onTap, Action onEdit, Action onDelete) {
+        MyListingAdapter(List<Product> items, Action onTap, Action onEdit, Action onDelete, Action onMarkAvailable) {
             this.items    = items;
             this.onTap    = onTap;
             this.onEdit   = onEdit;
             this.onDelete = onDelete;
+            this.onMarkAvailable = onMarkAvailable;
         }
 
         @NonNull @Override
@@ -246,6 +305,8 @@ public class MyListingsActivity extends AppCompatActivity {
             h.tvCondition.setText(p.getCondition());
 
             boolean isRent = Constants.PRODUCT_TYPE_RENT.equals(p.getType());
+            boolean isAvailable = p.isAvailable();
+            
             if (isRent) {
                 h.tvPrice.setText(String.format(Locale.getDefault(), "₹ %.0f/day", p.getPrice()));
                 h.tvBadge.setText("FOR RENT");
@@ -256,6 +317,29 @@ public class MyListingsActivity extends AppCompatActivity {
                 h.tvBadge.setText("FOR SALE");
                 h.tvBadge.setBackgroundResource(R.drawable.bg_badge_sale);
                 h.tvBadge.setTextColor(h.itemView.getContext().getResources().getColor(R.color.badge_buy_text, null));
+            }
+            
+            // Show unavailable indicator
+            if (!isAvailable) {
+                h.tvName.setAlpha(0.75f);
+                h.tvPrice.setAlpha(0.75f);
+                h.tvCategory.setAlpha(0.75f);
+                
+                if (isRent) {
+                    h.tvCondition.setText("Currently Rented");
+                } else {
+                    h.tvCondition.setText("Sold Out");
+                }
+                h.tvCondition.setTextColor(h.itemView.getContext().getResources().getColor(R.color.text_hint, null));
+                h.btnMarkAvailable.setVisibility(View.VISIBLE);
+                h.btnMarkAvailable.setText(isRent ? "Mark Available" : "Re-list Item");
+            } else {
+                h.tvName.setAlpha(1f);
+                h.tvPrice.setAlpha(1f);
+                h.tvCategory.setAlpha(1f);
+                h.tvCondition.setText(p.getCondition());
+                h.tvCondition.setTextColor(h.itemView.getContext().getResources().getColor(R.color.text_secondary, null));
+                h.btnMarkAvailable.setVisibility(View.GONE);
             }
 
             String url = p.getImageUrl();
@@ -276,6 +360,7 @@ public class MyListingsActivity extends AppCompatActivity {
             h.itemView.setOnClickListener(v -> onTap.run(p));
             h.btnEdit.setOnClickListener(v -> onEdit.run(p));
             h.btnDelete.setOnClickListener(v -> onDelete.run(p));
+            h.btnMarkAvailable.setOnClickListener(v -> onMarkAvailable.run(p));
         }
 
         @Override public int getItemCount() { return items.size(); }
@@ -283,7 +368,7 @@ public class MyListingsActivity extends AppCompatActivity {
         static class VH extends RecyclerView.ViewHolder {
             ImageView ivImage;
             TextView tvEmoji, tvName, tvBadge, tvCategory, tvPrice, tvCondition;
-            MaterialButton btnEdit, btnDelete;
+            MaterialButton btnEdit, btnDelete, btnMarkAvailable;
 
             VH(@NonNull View v) {
                 super(v);
@@ -296,6 +381,7 @@ public class MyListingsActivity extends AppCompatActivity {
                 tvCondition = v.findViewById(R.id.tvCondition);
                 btnEdit     = v.findViewById(R.id.btnEdit);
                 btnDelete   = v.findViewById(R.id.btnDelete);
+                btnMarkAvailable = v.findViewById(R.id.btnMarkAvailable);
             }
         }
     }

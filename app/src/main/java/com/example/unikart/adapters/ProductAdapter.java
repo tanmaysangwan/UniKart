@@ -89,6 +89,8 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
             // Price — show /day for rent
             boolean isRent = Constants.PRODUCT_TYPE_RENT.equals(product.getType());
+            boolean isAvailable = product.isAvailable();
+            
             if (isRent) {
                 tvPrice.setText(String.format(Locale.getDefault(), "₹ %.0f/day", product.getPrice()));
             } else {
@@ -98,15 +100,28 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
             String seller = product.getSellerName() != null ? product.getSellerName() : "Unknown";
             tvSellerName.setText("by " + seller);
 
-            // Badge
-            if (isRent) {
-                tvBadge.setText("FOR RENT");
-                tvBadge.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.badge_rent_text));
-                tvBadge.setBackground(ContextCompat.getDrawable(itemView.getContext(), R.drawable.bg_badge_rent));
+            // Badge — show unavailable status or buy/rent
+            if (!isAvailable) {
+                if (isRent) {
+                    tvBadge.setText("RENTED OUT");
+                } else {
+                    tvBadge.setText("SOLD OUT");
+                }
+                tvBadge.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.text_hint));
+                tvBadge.setBackground(ContextCompat.getDrawable(itemView.getContext(), R.drawable.bg_icon_container));
+                // Dim the card slightly
+                itemView.setAlpha(0.75f);
             } else {
-                tvBadge.setText("FOR SALE");
-                tvBadge.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.badge_buy_text));
-                tvBadge.setBackground(ContextCompat.getDrawable(itemView.getContext(), R.drawable.bg_badge_sale));
+                itemView.setAlpha(1f);
+                if (isRent) {
+                    tvBadge.setText("FOR RENT");
+                    tvBadge.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.badge_rent_text));
+                    tvBadge.setBackground(ContextCompat.getDrawable(itemView.getContext(), R.drawable.bg_badge_rent));
+                } else {
+                    tvBadge.setText("FOR SALE");
+                    tvBadge.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.badge_buy_text));
+                    tvBadge.setBackground(ContextCompat.getDrawable(itemView.getContext(), R.drawable.bg_badge_sale));
+                }
             }
 
             // Image
