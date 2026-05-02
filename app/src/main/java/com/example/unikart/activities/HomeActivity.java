@@ -28,10 +28,10 @@ import com.example.unikart.adapters.CategoryAdapter;
 import com.example.unikart.adapters.ProductAdapter;
 import com.example.unikart.firebase.FirebaseManager;
 import com.example.unikart.firebase.ProductRepository;
+import com.example.unikart.models.Category;
 import com.example.unikart.models.FilterState;
 import com.example.unikart.models.Product;
 import com.example.unikart.utils.Constants;
-import com.example.unikart.utils.DummyDataGenerator;
 import com.example.unikart.utils.SessionManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -93,7 +93,7 @@ public class HomeActivity extends AppCompatActivity {
         setupRecyclerViews();
         setupSearch();
         setupBottomNavigation();
-        seedThenLoad();
+        loadProducts();
     }
 
     /**
@@ -176,7 +176,13 @@ public class HomeActivity extends AppCompatActivity {
         // Categories
         rvCategories.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        CategoryAdapter categoryAdapter = new CategoryAdapter(DummyDataGenerator.getCategories());
+
+        // Build category list directly from Constants — single source of truth
+        List<Category> categoryList = new ArrayList<>();
+        for (String name : Constants.ALL_CATEGORIES) {
+            categoryList.add(new Category(name, name, Constants.categoryEmoji(name)));
+        }
+        CategoryAdapter categoryAdapter = new CategoryAdapter(categoryList);
         categoryAdapter.setOnCategoryClickListener(category -> {
             if (category.getName().equals(filterState.getCategoryFilter())) {
                 filterState.setCategoryFilter(null);
@@ -477,17 +483,6 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     /**
-     * Seed marketplace if empty, then load products
-     */
-    private void seedThenLoad() {
-        showLoading(true);
-        productRepository.seedMarketplaceIfEmpty(new ProductRepository.ProductCallback() {
-            @Override public void onSuccess(String msg) { loadProducts(); }
-            @Override public void onFailure(String err) { loadProducts(); }
-        });
-    }
-
-    /**
      * Load all products from Firestore
      */
     private void loadProducts() {
@@ -498,10 +493,24 @@ public class HomeActivity extends AppCompatActivity {
             @Override
             public void onSuccess(List<Product> products) {
                 showLoading(false);
+
+                // Silently purge any leftover Campus Store seed listings
+                List<Product> clean = new ArrayList<>();
+                for (Product p : products) {
+                    if ("Campus Store".equals(p.getSellerName())) {
+                        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                .collection(com.example.unikart.utils.Constants.COLLECTION_PRODUCTS)
+                                .document(p.getId())
+                                .delete();
+                    } else {
+                        clean.add(p);
+                    }
+                }
+
                 allProducts.clear();
-                allProducts.addAll(products);
+                allProducts.addAll(clean);
                 applyFilters();
-                Log.d(TAG, "Loaded " + products.size() + " products");
+                Log.d(TAG, "Loaded " + clean.size() + " products (purged " + (products.size() - clean.size()) + " seed items)");
             }
 
             @Override

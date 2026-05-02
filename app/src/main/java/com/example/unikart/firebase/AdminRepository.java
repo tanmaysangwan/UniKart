@@ -172,6 +172,37 @@ public class AdminRepository {
     }
 
     /**
+     * Deletes all products listed by "Campus Store" (seed data).
+     * Matches on ownerName to catch both the placeholder and real demo UID variants.
+     */
+    public void deleteSeedProducts(AdminCallback callback) {
+        firestore.collection(Constants.COLLECTION_PRODUCTS)
+                .whereEqualTo("ownerName", DEMO_NAME)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (snapshot.isEmpty()) {
+                        callback.onSuccess("No seed products found");
+                        return;
+                    }
+                    final int total = snapshot.size();
+                    final int[] remaining = {total};
+                    final int[] deleted = {0};
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snapshot) {
+                        doc.getReference().delete()
+                                .addOnCompleteListener(task -> {
+                                    if (task.isSuccessful()) deleted[0]++;
+                                    remaining[0]--;
+                                    if (remaining[0] == 0) {
+                                        Log.d(TAG, "Deleted " + deleted[0] + " seed products");
+                                        callback.onSuccess("Deleted " + deleted[0] + " Campus Store listings");
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> callback.onFailure("Delete failed: " + e.getMessage()));
+    }
+
+    /**
      * Clears all products from Firestore (for dev reset).
      */
     public void clearAllProducts(AdminCallback callback) {
@@ -248,26 +279,6 @@ public class AdminRepository {
                     }
                 })
                 .addOnFailureListener(e -> callback.onFailure("Repair failed: " + e.getMessage()));
-    }
-
-    /**
-     * Rebuilds the entire marketplace inventory:
-     * 1. Repairs all product images
-     * 2. Adds new expanded inventory
-     */
-    public void rebuildMarketplaceInventory(AdminCallback callback) {
-        ProductRepository productRepo = new ProductRepository();
-        productRepo.rebuildMarketplaceInventory(new ProductRepository.ProductCallback() {
-            @Override
-            public void onSuccess(String message) {
-                callback.onSuccess(message);
-            }
-
-            @Override
-            public void onFailure(String error) {
-                callback.onFailure(error);
-            }
-        });
     }
 
     /**

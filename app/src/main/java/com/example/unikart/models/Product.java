@@ -13,6 +13,9 @@ public class Product {
     private String imageUrl;
     private long timestamp;
     
+    // Rent-specific
+    private int maxRentDays;
+
     // Seller rating info (loaded from seller's user document)
     private double sellerRating;
     private int sellerReviewCount;
@@ -65,6 +68,9 @@ public class Product {
     public long getTimestamp()              { return timestamp; }
     public void setTimestamp(long t)        { this.timestamp = t; }
     
+    public int getMaxRentDays()             { return maxRentDays; }
+    public void setMaxRentDays(int d)       { this.maxRentDays = d; }
+
     public double getSellerRating()         { return sellerRating; }
     public void setSellerRating(double r)   { this.sellerRating = r; }
     

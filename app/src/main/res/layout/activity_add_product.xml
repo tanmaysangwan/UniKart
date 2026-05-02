@@ -295,6 +295,90 @@
 
                     </RadioGroup>
 
+                    <!-- Category -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CATEGORY"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.08"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilCategory"
+                        style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:boxBackgroundColor="@color/bg_input"
+                        app:boxStrokeWidth="0dp"
+                        app:boxStrokeWidthFocused="0dp">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/spinnerCategory"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Select a category"
+                            android:inputType="none"
+                            android:textSize="15sp"/>
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Condition -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CONDITION"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.08"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilCondition"
+                        style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:boxBackgroundColor="@color/bg_input"
+                        app:boxStrokeWidth="0dp"
+                        app:boxStrokeWidthFocused="0dp">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/spinnerCondition"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Select condition"
+                            android:inputType="none"
+                            android:textSize="15sp"/>
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Max Rent Days (shown only when Rent is selected) -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilMaxRentDays"
+                        style="@style/Widget.Material3.TextInputLayout.FilledBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:hint="Max Rent Duration (days)"
+                        android:visibility="gone"
+                        app:boxBackgroundColor="@color/bg_input"
+                        app:boxStrokeWidth="0dp"
+                        app:boxStrokeWidthFocused="0dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etMaxRentDays"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:textSize="15sp"/>
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>

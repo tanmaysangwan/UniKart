@@ -12,6 +12,8 @@ public class Order {
     private String type;       // BUY or RENT
     private String status;
     private double price;
+    private int rentDays;      // number of days requested (RENT only)
+    private double totalPrice; // price * rentDays for RENT, same as price for BUY
     private long requestedAt;
     private long updatedAt;
 
@@ -49,6 +51,12 @@ public class Order {
 
     public double getPrice()                { return price; }
     public void setPrice(double v)          { this.price = v; }
+
+    public int getRentDays()                { return rentDays; }
+    public void setRentDays(int v)          { this.rentDays = v; }
+
+    public double getTotalPrice()           { return totalPrice > 0 ? totalPrice : price; }
+    public void setTotalPrice(double v)     { this.totalPrice = v; }
 
     public long getRequestedAt()            { return requestedAt; }
     public void setRequestedAt(long v)      { this.requestedAt = v; }

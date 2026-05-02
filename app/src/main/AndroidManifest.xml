@@ -108,6 +108,10 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize"/>
 
+        <activity
+            android:name=".activities.MyListingsActivity"
+            android:exported="false"/>
+
         <!-- FileProvider for camera images -->
         <provider
             android:name="androidx.core.content.FileProvider"
