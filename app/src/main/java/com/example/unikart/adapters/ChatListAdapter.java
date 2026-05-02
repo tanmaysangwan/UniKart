@@ -1,16 +1,21 @@
 package com.example.unikart.adapters;
 
+import android.content.Context;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.unikart.R;
 import com.example.unikart.models.ChatThread;
+import com.example.unikart.utils.Constants;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.List;
 
@@ -54,14 +59,18 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
     class ChatViewHolder extends RecyclerView.ViewHolder {
         private final TextView tvName;
         private final TextView tvAvatarInitial;
+        private final ImageView ivAvatar;
         private final TextView tvProductTitle;
         private final TextView tvLastMessage;
         private final TextView tvTime;
+        private final Context context;
 
         public ChatViewHolder(@NonNull View itemView) {
             super(itemView);
+            context         = itemView.getContext();
             tvName          = itemView.findViewById(R.id.tvName);
             tvAvatarInitial = itemView.findViewById(R.id.tvAvatarInitial);
+            ivAvatar        = itemView.findViewById(R.id.ivAvatar);
             tvProductTitle  = itemView.findViewById(R.id.tvProductTitle);
             tvLastMessage   = itemView.findViewById(R.id.tvLastMessage);
             tvTime          = itemView.findViewById(R.id.tvTime);
@@ -75,8 +84,31 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             if (displayName == null || displayName.isEmpty()) displayName = iAmSeller ? "Buyer" : "Seller";
             tvName.setText(displayName);
 
-            // Avatar initial — first letter of display name, uppercase
+            // Avatar initial — shown until photo loads
             tvAvatarInitial.setText(String.valueOf(displayName.charAt(0)).toUpperCase());
+            tvAvatarInitial.setVisibility(View.VISIBLE);
+            ivAvatar.setVisibility(View.GONE);
+
+            // Load the other person's profile picture from Firestore
+            String otherUserId = iAmSeller ? thread.getBuyerId() : thread.getSellerId();
+            if (otherUserId != null && !otherUserId.isEmpty()) {
+                FirebaseFirestore.getInstance()
+                        .collection(Constants.COLLECTION_USERS)
+                        .document(otherUserId)
+                        .get()
+                        .addOnSuccessListener(doc -> {
+                            String avatarUrl = doc.getString("profilePicture");
+                            if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                                tvAvatarInitial.setVisibility(View.GONE);
+                                ivAvatar.setVisibility(View.VISIBLE);
+                                Glide.with(context)
+                                        .load(avatarUrl)
+                                        .placeholder(R.drawable.bg_avatar_placeholder)
+                                        .circleCrop()
+                                        .into(ivAvatar);
+                            }
+                        });
+            }
 
             // Product tag
             String product = thread.getProductTitle();
@@ -91,7 +123,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             String last = thread.getLastMessage();
             tvLastMessage.setText((last != null && !last.isEmpty()) ? last : "No messages yet");
 
-            // Relative time (e.g. "2 min ago", "Yesterday")
+            // Relative time
             if (thread.getLastMessageAt() > 0) {
                 CharSequence timeAgo = DateUtils.getRelativeTimeSpanString(
                         thread.getLastMessageAt(),

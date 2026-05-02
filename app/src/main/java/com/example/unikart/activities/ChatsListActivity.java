@@ -127,6 +127,8 @@ public class ChatsListActivity extends AppCompatActivity {
         intent.putExtra("chat_id", thread.getChatId());
         intent.putExtra("seller_id", thread.getSellerId());
         intent.putExtra("seller_name", thread.getSellerName());
+        intent.putExtra("buyer_id", thread.getBuyerId());
+        intent.putExtra("buyer_name", thread.getBuyerName());
         intent.putExtra("product_id", thread.getProductId());
         intent.putExtra("product_title", thread.getProductTitle());
         startActivity(intent);
