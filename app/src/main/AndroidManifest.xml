@@ -73,6 +73,10 @@
             android:exported="false"/>
 
         <activity
+            android:name=".activities.UserProfileActivity"
+            android:exported="false"/>
+
+        <activity
             android:name=".activities.ProfileActivity"
             android:exported="false"/>
 
