@@ -177,6 +177,29 @@
 
             </RadioGroup>
 
+            <!-- Max Rent Days (shown only when Rent is selected) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilMaxRentDays"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:hint="Max Rent Duration (days)"
+                android:visibility="gone"
+                app:boxCornerRadiusTopStart="14dp"
+                app:boxCornerRadiusTopEnd="14dp"
+                app:boxCornerRadiusBottomStart="14dp"
+                app:boxCornerRadiusBottomEnd="14dp"
+                app:boxBackgroundColor="@android:color/white">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etMaxRentDays"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:maxLength="4" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
             <!-- Category -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"

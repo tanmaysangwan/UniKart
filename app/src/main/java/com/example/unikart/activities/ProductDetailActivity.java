@@ -6,10 +6,14 @@ import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RatingBar;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -22,11 +26,15 @@ import com.example.unikart.R;
 import com.example.unikart.firebase.OrderRepository;
 import com.example.unikart.firebase.ProductRepository;
 import com.example.unikart.models.Product;
+import com.example.unikart.models.Review;
 import com.example.unikart.utils.Constants;
 import com.example.unikart.utils.SessionManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class ProductDetailActivity extends AppCompatActivity {
@@ -40,10 +48,16 @@ public class ProductDetailActivity extends AppCompatActivity {
     private TextView tvDescription;
     private TextView tvSellerName;
     private TextView tvSellerRating;
+    private TextView tvCategory;
+    private TextView tvMaxRentDays;
     private MaterialButton btnChat;
     private MaterialButton btnRequest;
     private MaterialButton btnEdit;
     private ProgressBar progressBar;
+    // Reviews
+    private LinearLayout llReviews;
+    private TextView tvReviewCount;
+    private TextView tvNoReviews;
 
     private ProductRepository productRepository;
     private OrderRepository orderRepository;
@@ -91,10 +105,15 @@ public class ProductDetailActivity extends AppCompatActivity {
         tvDescription   = findViewById(R.id.tvDescription);
         tvSellerName    = findViewById(R.id.tvSellerName);
         tvSellerRating  = findViewById(R.id.tvSellerRating);
+        tvCategory      = findViewById(R.id.tvCategory);
+        tvMaxRentDays   = findViewById(R.id.tvMaxRentDays);
         btnChat         = findViewById(R.id.btnChat);
         btnRequest      = findViewById(R.id.btnRequest);
         btnEdit         = findViewById(R.id.btnEdit);
         progressBar     = findViewById(R.id.progressBar);
+        llReviews       = findViewById(R.id.llReviews);
+        tvReviewCount   = findViewById(R.id.tvReviewCount);
+        tvNoReviews     = findViewById(R.id.tvNoReviews);
 
         FrameLayout btnBack = findViewById(R.id.btnBack);
         if (btnBack != null) {
@@ -143,6 +162,7 @@ public class ProductDetailActivity extends AppCompatActivity {
                 if (progressBar != null) progressBar.setVisibility(View.GONE);
                 currentProduct = product;
                 displayProduct(product);
+                loadProductReviews(product.getId());
             }
 
             @Override
@@ -159,10 +179,35 @@ public class ProductDetailActivity extends AppCompatActivity {
         if (product == null) return;
 
         tvProductTitle.setText(product.getName());
-        tvPrice.setText(String.format(Locale.getDefault(), "₹ %.0f", product.getPrice()));
         tvDescription.setText(product.getDescription());
         tvSellerName.setText(product.getSellerName());
-        
+
+        boolean isRent = Constants.PRODUCT_TYPE_RENT.equals(product.getType());
+
+        // Price label — show "per day" for rent items
+        if (isRent) {
+            tvPrice.setText(String.format(Locale.getDefault(), "₹ %.0f/day", product.getPrice()));
+        } else {
+            tvPrice.setText(String.format(Locale.getDefault(), "₹ %.0f", product.getPrice()));
+        }
+
+        // Category
+        if (tvCategory != null) {
+            String cat = product.getCategory();
+            String emoji = Constants.categoryEmoji(cat);
+            tvCategory.setText(emoji + " " + (cat != null && !cat.isEmpty() ? cat : "Other"));
+        }
+
+        // Max rent days
+        if (tvMaxRentDays != null) {
+            if (isRent && product.getMaxRentDays() > 0) {
+                tvMaxRentDays.setVisibility(View.VISIBLE);
+                tvMaxRentDays.setText("🗓 Max " + product.getMaxRentDays() + " days");
+            } else {
+                tvMaxRentDays.setVisibility(View.GONE);
+            }
+        }
+
         // Check if current user is the owner
         String currentUserId = sessionManager.getUserId();
         boolean isOwner = currentUserId != null && currentUserId.equals(product.getSellerId());
@@ -177,7 +222,10 @@ public class ProductDetailActivity extends AppCompatActivity {
             // Non-owner sees Chat/Request buttons, no Edit button
             if (btnEdit != null) btnEdit.setVisibility(View.GONE);
             if (btnChat != null) btnChat.setVisibility(View.VISIBLE);
-            if (btnRequest != null) btnRequest.setVisibility(View.VISIBLE);
+            if (btnRequest != null) {
+                btnRequest.setVisibility(View.VISIBLE);
+                btnRequest.setText(isRent ? "Rent Now" : "Buy Now");
+            }
         }
         
         // Display seller rating
@@ -214,6 +262,73 @@ public class ProductDetailActivity extends AppCompatActivity {
         }
     }
 
+    private void loadProductReviews(String productId) {
+        if (llReviews == null) return;
+        orderRepository.getReviewsForProduct(productId, new OrderRepository.ReviewListCallback() {
+            @Override
+            public void onSuccess(List<Review> reviews) {
+                runOnUiThread(() -> {
+                    llReviews.removeAllViews();
+                    if (reviews == null || reviews.isEmpty()) {
+                        if (tvNoReviews != null) tvNoReviews.setVisibility(View.VISIBLE);
+                        if (tvReviewCount != null) tvReviewCount.setVisibility(View.GONE);
+                        return;
+                    }
+                    if (tvNoReviews != null) tvNoReviews.setVisibility(View.GONE);
+                    if (tvReviewCount != null) {
+                        tvReviewCount.setVisibility(View.VISIBLE);
+                        // Compute average
+                        float total = 0;
+                        for (Review r : reviews) total += r.getRating();
+                        float avg = total / reviews.size();
+                        tvReviewCount.setText(String.format(Locale.getDefault(),
+                                "⭐ %.1f  ·  %d review%s", avg, reviews.size(), reviews.size() == 1 ? "" : "s"));
+                    }
+                    LayoutInflater inflater = LayoutInflater.from(ProductDetailActivity.this);
+                    SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+                    for (Review r : reviews) {
+                        View card = inflater.inflate(R.layout.item_review, llReviews, false);
+                        TextView tvName    = card.findViewById(R.id.tvReviewerName);
+                        RatingBar rb       = card.findViewById(R.id.ratingBar);
+                        TextView tvRating  = card.findViewById(R.id.tvRating);
+                        TextView tvComment = card.findViewById(R.id.tvComment);
+                        TextView tvDate    = card.findViewById(R.id.tvDate);
+                        ImageView ivAvatar = card.findViewById(R.id.ivReviewerAvatar);
+                        LinearLayout layoutProduct = card.findViewById(R.id.layoutProductInfo);
+                        if (layoutProduct != null) layoutProduct.setVisibility(View.GONE);
+
+                        tvName.setText(r.getReviewerName());
+                        rb.setRating(r.getRating());
+                        tvRating.setText(String.format(Locale.getDefault(), "%.1f", r.getRating()));
+                        if (r.getComment() != null && !r.getComment().isEmpty()) {
+                            tvComment.setText(r.getComment());
+                            tvComment.setVisibility(View.VISIBLE);
+                        } else {
+                            tvComment.setVisibility(View.GONE);
+                        }
+                        tvDate.setText(r.getTimestamp() > 0 ? sdf.format(new Date(r.getTimestamp())) : "");
+
+                        String pic = r.getReviewerProfilePic();
+                        if (pic != null && !pic.isEmpty()) {
+                            Glide.with(ProductDetailActivity.this).load(pic)
+                                    .placeholder(R.drawable.bg_avatar_placeholder).circleCrop().into(ivAvatar);
+                        } else {
+                            ivAvatar.setImageResource(R.drawable.bg_avatar_placeholder);
+                        }
+                        llReviews.addView(card);
+                    }
+                });
+            }
+            @Override
+            public void onFailure(String error) {
+                Log.w(TAG, "loadProductReviews failed: " + error);
+                runOnUiThread(() -> {
+                    if (tvNoReviews != null) tvNoReviews.setVisibility(View.VISIBLE);
+                });
+            }
+        });
+    }
+
     private void openEditListing() {
         if (currentProduct == null) return;
         
@@ -225,21 +340,78 @@ public class ProductDetailActivity extends AppCompatActivity {
     private void showRequestDialog() {
         if (currentProduct == null) return;
 
-        String actionLabel = Constants.PRODUCT_TYPE_RENT.equals(currentProduct.getType())
-                ? "Rent" : "Buy";
+        boolean isRent = Constants.PRODUCT_TYPE_RENT.equals(currentProduct.getType());
 
-        new AlertDialog.Builder(this)
-                .setTitle(actionLabel + " Request")
-                .setMessage("Send a " + actionLabel.toLowerCase() + " request to "
-                        + currentProduct.getSellerName()
-                        + " for \"" + currentProduct.getName() + "\"?\n\n"
-                        + "Price: ₹" + String.format(Locale.getDefault(), "%.0f", currentProduct.getPrice()))
-                .setPositiveButton("Send Request", (dialog, which) -> sendRequest())
-                .setNegativeButton("Cancel", null)
-                .show();
+        if (isRent) {
+            // For rent: ask how many days
+            View dialogView = getLayoutInflater().inflate(android.R.layout.activity_list_item, null);
+            // Use a simple EditText dialog
+            final EditText etDays = new EditText(this);
+            etDays.setHint("Number of days");
+            etDays.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+            etDays.setPadding(48, 24, 48, 24);
+
+            int maxDays = currentProduct.getMaxRentDays();
+            String maxDaysNote = maxDays > 0 ? "\nMax allowed: " + maxDays + " days" : "";
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Rent Request")
+                    .setMessage("How many days do you want to rent \"" + currentProduct.getName() + "\"?\n"
+                            + "Price: ₹" + String.format(Locale.getDefault(), "%.0f", currentProduct.getPrice()) + "/day"
+                            + maxDaysNote)
+                    .setView(etDays)
+                    .setPositiveButton("Send Request", (dialog, which) -> {
+                        String daysStr = etDays.getText().toString().trim();
+                        if (daysStr.isEmpty()) {
+                            Snackbar.make(findViewById(android.R.id.content),
+                                    "Please enter number of days", Snackbar.LENGTH_SHORT).show();
+                            return;
+                        }
+                        int days;
+                        try {
+                            days = Integer.parseInt(daysStr);
+                        } catch (NumberFormatException e) {
+                            Snackbar.make(findViewById(android.R.id.content),
+                                    "Invalid number of days", Snackbar.LENGTH_SHORT).show();
+                            return;
+                        }
+                        if (days < 1) {
+                            Snackbar.make(findViewById(android.R.id.content),
+                                    "Must be at least 1 day", Snackbar.LENGTH_SHORT).show();
+                            return;
+                        }
+                        if (maxDays > 0 && days > maxDays) {
+                            Snackbar.make(findViewById(android.R.id.content),
+                                    "Max allowed is " + maxDays + " days", Snackbar.LENGTH_SHORT).show();
+                            return;
+                        }
+                        double total = currentProduct.getPrice() * days;
+                        new AlertDialog.Builder(this)
+                                .setTitle("Confirm Rent Request")
+                                .setMessage("Rent \"" + currentProduct.getName() + "\" for " + days + " day(s)?\n\n"
+                                        + "Rate: ₹" + String.format(Locale.getDefault(), "%.0f", currentProduct.getPrice()) + "/day\n"
+                                        + "Total: ₹" + String.format(Locale.getDefault(), "%.0f", total))
+                                .setPositiveButton("Confirm", (d2, w2) -> sendRequest(days))
+                                .setNegativeButton("Cancel", null)
+                                .show();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        } else {
+            // For buy: simple confirmation
+            new AlertDialog.Builder(this)
+                    .setTitle("Buy Request")
+                    .setMessage("Send a buy request to "
+                            + currentProduct.getSellerName()
+                            + " for \"" + currentProduct.getName() + "\"?\n\n"
+                            + "Price: ₹" + String.format(Locale.getDefault(), "%.0f", currentProduct.getPrice()))
+                    .setPositiveButton("Send Request", (dialog, which) -> sendRequest(0))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        }
     }
 
-    private void sendRequest() {
+    private void sendRequest(int rentDays) {
         if (currentProduct == null) return;
 
         if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
@@ -253,17 +425,22 @@ public class ProductDetailActivity extends AppCompatActivity {
                 currentProduct.getSellerId(),
                 currentProduct.getSellerName(),
                 currentProduct.getType(),
+                rentDays,
                 new OrderRepository.OrderCallback() {
                     @Override
                     public void onSuccess(String orderId) {
                         if (progressBar != null) progressBar.setVisibility(View.GONE);
                         if (btnRequest  != null) btnRequest.setEnabled(true);
 
+                        boolean isRent = Constants.PRODUCT_TYPE_RENT.equals(currentProduct.getType());
+                        String successMsg = isRent
+                                ? "Rent request sent for " + rentDays + " day(s)!\nTotal: ₹"
+                                    + String.format(Locale.getDefault(), "%.0f", currentProduct.getPrice() * rentDays)
+                                : "Your request has been sent to " + currentProduct.getSellerName() + ".";
+
                         new AlertDialog.Builder(ProductDetailActivity.this)
                                 .setTitle("Request Sent!")
-                                .setMessage("Your request has been sent to "
-                                        + currentProduct.getSellerName()
-                                        + ".\n\nYou can track it in My Orders.")
+                                .setMessage(successMsg + "\n\nYou can track it in My Orders.")
                                 .setPositiveButton("View Orders", (d, w) -> {
                                     startActivity(new Intent(ProductDetailActivity.this, OrdersActivity.class));
                                 })

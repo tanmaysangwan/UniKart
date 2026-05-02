@@ -33,6 +33,7 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
@@ -43,7 +44,7 @@ public class EditListingActivity extends AppCompatActivity {
     private static final String TAG = "EditListingActivity";
     public static final String EXTRA_PRODUCT_ID = "product_id";
 
-    private TextInputEditText etTitle, etDescription, etPrice;
+    private TextInputEditText etTitle, etDescription, etPrice, etMaxRentDays;
     private AutoCompleteTextView spinnerCategory, spinnerCondition;
     private RadioGroup rgType;
     private RadioButton rbBuy, rbRent;
@@ -119,6 +120,7 @@ public class EditListingActivity extends AppCompatActivity {
         etTitle = findViewById(R.id.etTitle);
         etDescription = findViewById(R.id.etDescription);
         etPrice = findViewById(R.id.etPrice);
+        etMaxRentDays = findViewById(R.id.etMaxRentDays);
         spinnerCategory = findViewById(R.id.spinnerCategory);
         spinnerCondition = findViewById(R.id.spinnerCondition);
         rgType = findViewById(R.id.rgType);
@@ -204,6 +206,18 @@ public class EditListingActivity extends AppCompatActivity {
                         rbBuy.setChecked(true);
                     }
 
+                    // Show/hide max rent days
+                    TextInputLayout tilMaxRentDays = findViewById(R.id.tilMaxRentDays);
+                    Long maxRentDaysVal = doc.getLong("maxRentDays");
+                    if (Constants.PRODUCT_TYPE_RENT.equals(type)) {
+                        if (tilMaxRentDays != null) tilMaxRentDays.setVisibility(View.VISIBLE);
+                        if (etMaxRentDays != null && maxRentDaysVal != null && maxRentDaysVal > 0) {
+                            etMaxRentDays.setText(String.valueOf(maxRentDaysVal.intValue()));
+                        }
+                    } else {
+                        if (tilMaxRentDays != null) tilMaxRentDays.setVisibility(View.GONE);
+                    }
+
                     // Set category
                     if (category != null) {
                         spinnerCategory.setText(category, false);
@@ -237,6 +251,14 @@ public class EditListingActivity extends AppCompatActivity {
         btnChangeImage.setOnClickListener(v -> showImageOptions());
         btnSave.setOnClickListener(v -> saveChanges());
         btnDelete.setOnClickListener(v -> showDeleteConfirmation());
+
+        // Show/hide max rent days based on type selection
+        rgType.setOnCheckedChangeListener((group, checkedId) -> {
+            TextInputLayout tilMaxRentDays = findViewById(R.id.tilMaxRentDays);
+            if (tilMaxRentDays != null) {
+                tilMaxRentDays.setVisibility(checkedId == R.id.rbRent ? View.VISIBLE : View.GONE);
+            }
+        });
     }
 
     private void showImageOptions() {
@@ -339,17 +361,37 @@ public class EditListingActivity extends AppCompatActivity {
 
         String type = rbRent.isChecked() ? Constants.PRODUCT_TYPE_RENT : Constants.PRODUCT_TYPE_BUY;
 
+        int maxRentDays = 0;
+        if (Constants.PRODUCT_TYPE_RENT.equals(type)) {
+            String maxDaysStr = etMaxRentDays != null && etMaxRentDays.getText() != null
+                    ? etMaxRentDays.getText().toString().trim() : "";
+            if (maxDaysStr.isEmpty()) {
+                showError("Please enter the maximum number of rent days");
+                return;
+            }
+            try {
+                maxRentDays = Integer.parseInt(maxDaysStr);
+                if (maxRentDays < 1) {
+                    showError("Max rent days must be at least 1");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                showError("Invalid number of days");
+                return;
+            }
+        }
+
         // If image changed, upload new image first
         if (imageChanged && selectedImageUri != null) {
-            uploadImageAndUpdate(title, description, price, type, category, condition);
+            uploadImageAndUpdate(title, description, price, type, category, condition, maxRentDays);
         } else {
             // No image change, update directly
-            updateProduct(title, description, price, type, category, condition, currentImageUrl);
+            updateProduct(title, description, price, type, category, condition, currentImageUrl, maxRentDays);
         }
     }
 
     private void uploadImageAndUpdate(String title, String description, double price,
-                                      String type, String category, String condition) {
+                                      String type, String category, String condition, int maxRentDays) {
         showLoading(true);
         showInfo("Uploading image...");
 
@@ -358,7 +400,7 @@ public class EditListingActivity extends AppCompatActivity {
             public void onSuccess(String imageUrl) {
                 runOnUiThread(() -> {
                     showInfo("Image uploaded successfully");
-                    updateProduct(title, description, price, type, category, condition, imageUrl);
+                    updateProduct(title, description, price, type, category, condition, imageUrl, maxRentDays);
                 });
             }
 
@@ -373,7 +415,7 @@ public class EditListingActivity extends AppCompatActivity {
     }
 
     private void updateProduct(String title, String description, double price,
-                               String type, String category, String condition, String imageUrl) {
+                               String type, String category, String condition, String imageUrl, int maxRentDays) {
         showLoading(true);
         showInfo("Updating listing...");
 
@@ -386,6 +428,11 @@ public class EditListingActivity extends AppCompatActivity {
         updates.put("condition", condition);
         updates.put("imageUrl", imageUrl != null ? imageUrl : "");
         updates.put("updatedAt", System.currentTimeMillis());
+        if (Constants.PRODUCT_TYPE_RENT.equals(type) && maxRentDays > 0) {
+            updates.put("maxRentDays", maxRentDays);
+        } else {
+            updates.put("maxRentDays", 0);
+        }
 
         firestore.collection(Constants.COLLECTION_PRODUCTS)
                 .document(productId)

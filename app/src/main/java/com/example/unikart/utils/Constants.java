@@ -26,18 +26,46 @@ public class Constants {
     public static final String ORDER_STATUS_RETURN_PENDING = "RETURN_PENDING";
     public static final String ORDER_STATUS_RETURNED       = "RETURNED";
 
-    // Product Categories
-    public static final String CATEGORY_BOOKS       = "Books";
-    public static final String CATEGORY_ELECTRONICS = "Electronics";
-    public static final String CATEGORY_FURNITURE   = "Furniture";
-    public static final String CATEGORY_CLOTHING    = "Clothing";
-    public static final String CATEGORY_SPORTS      = "Sports";
-    public static final String CATEGORY_OTHER       = "Other";
+    // Product Categories — single source of truth used everywhere
+    public static final String CATEGORY_BOOKS        = "Books";
+    public static final String CATEGORY_ELECTRONICS  = "Electronics";
+    public static final String CATEGORY_FURNITURE    = "Furniture";
+    public static final String CATEGORY_CLOTHING     = "Clothing";
+    public static final String CATEGORY_SPORTS       = "Sports";
+    public static final String CATEGORY_STATIONERY   = "Stationery";
+    public static final String CATEGORY_APPLIANCES   = "Appliances";
+    public static final String CATEGORY_INSTRUMENTS  = "Instruments";
+    public static final String CATEGORY_OTHER        = "Other";
 
+    /** Ordered list of category names — used for spinners and filter chips. */
     public static final List<String> ALL_CATEGORIES = Arrays.asList(
-            CATEGORY_BOOKS, CATEGORY_ELECTRONICS, CATEGORY_FURNITURE,
-            CATEGORY_CLOTHING, CATEGORY_SPORTS, CATEGORY_OTHER
+            CATEGORY_BOOKS,
+            CATEGORY_ELECTRONICS,
+            CATEGORY_FURNITURE,
+            CATEGORY_CLOTHING,
+            CATEGORY_SPORTS,
+            CATEGORY_STATIONERY,
+            CATEGORY_APPLIANCES,
+            CATEGORY_INSTRUMENTS,
+            CATEGORY_OTHER
     );
+
+    /** Returns the emoji for a given category name. */
+    public static String categoryEmoji(String category) {
+        if (category == null) return "📦";
+        switch (category) {
+            case CATEGORY_BOOKS:       return "📚";
+            case CATEGORY_ELECTRONICS: return "💻";
+            case CATEGORY_FURNITURE:   return "🪑";
+            case CATEGORY_CLOTHING:    return "👕";
+            case CATEGORY_SPORTS:      return "⚽";
+            case CATEGORY_STATIONERY:  return "✏️";
+            case CATEGORY_APPLIANCES:  return "🍳";
+            case CATEGORY_INSTRUMENTS: return "🎸";
+            case CATEGORY_OTHER:       return "📦";
+            default:                   return "📦";
+        }
+    }
 
     // Allowed University Email Domains
     public static final List<String> ALLOWED_EMAIL_DOMAINS = Arrays.asList(

@@ -184,7 +184,13 @@ public class OrdersActivity extends AppCompatActivity {
             void bind(Order order) {
                 tvTitle.setText(order.getProductTitle());
                 tvStatus.setText(Constants.statusLabel(order.getStatus()));
-                tvPrice.setText(String.format(Locale.getDefault(), "₹ %.0f", order.getPrice()));
+                boolean isRentOrder = Constants.PRODUCT_TYPE_RENT.equals(order.getType());
+                if (isRentOrder && order.getRentDays() > 0) {
+                    tvPrice.setText(String.format(Locale.getDefault(), "₹ %.0f × %d days = ₹ %.0f",
+                            order.getPrice(), order.getRentDays(), order.getTotalPrice()));
+                } else {
+                    tvPrice.setText(String.format(Locale.getDefault(), "₹ %.0f", order.getPrice()));
+                }
                 tvDate.setText(new SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
                         .format(new Date(order.getRequestedAt())));
                 tvType.setText(Constants.PRODUCT_TYPE_RENT.equals(order.getType()) ? "RENT" : "BUY");

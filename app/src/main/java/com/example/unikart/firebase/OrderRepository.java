@@ -40,7 +40,7 @@ public class OrderRepository {
 
     public void createOrder(String productId, String productTitle, String productImageUrl,
                             double price, String sellerId, String sellerName,
-                            String type, OrderCallback callback) {
+                            String type, int rentDays, OrderCallback callback) {
         String buyerId = firebaseManager.getCurrentUserId();
         if (buyerId == null) { callback.onFailure("Not logged in"); return; }
 
@@ -67,6 +67,11 @@ public class OrderRepository {
                     data.put("status", Constants.ORDER_STATUS_REQUESTED);
                     data.put("requestedAt", System.currentTimeMillis());
                     data.put("updatedAt", System.currentTimeMillis());
+                    boolean isRentOrder = Constants.PRODUCT_TYPE_RENT.equals(type);
+                    int days = isRentOrder && rentDays > 0 ? rentDays : 1;
+                    double totalPrice = isRentOrder ? price * days : price;
+                    data.put("rentDays", isRentOrder ? days : 0);
+                    data.put("totalPrice", totalPrice);
 
                     firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
                             .set(data)
@@ -104,6 +109,11 @@ public class OrderRepository {
                     data.put("status", Constants.ORDER_STATUS_REQUESTED);
                     data.put("requestedAt", System.currentTimeMillis());
                     data.put("updatedAt", System.currentTimeMillis());
+                    boolean isRentOrderFb = Constants.PRODUCT_TYPE_RENT.equals(type);
+                    int daysFb = isRentOrderFb && rentDays > 0 ? rentDays : 1;
+                    double totalPriceFb = isRentOrderFb ? price * daysFb : price;
+                    data.put("rentDays", isRentOrderFb ? daysFb : 0);
+                    data.put("totalPrice", totalPriceFb);
                     firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
                             .set(data)
                             .addOnSuccessListener(v -> callback.onSuccess(orderId))
@@ -393,6 +403,40 @@ public class OrderRepository {
         void onFailure(String error);
     }
 
+    /** Fetches all reviews for a specific product (by productId field). */
+    public void getReviewsForProduct(String productId, ReviewListCallback callback) {
+        if (productId == null || productId.isEmpty()) {
+            callback.onSuccess(new ArrayList<>());
+            return;
+        }
+        firestore.collection(Constants.COLLECTION_REVIEWS)
+                .whereEqualTo("productId", productId)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(snap -> {
+                    List<Review> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snap) {
+                        list.add(mapReviewDoc(doc));
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "getReviewsForProduct ordered failed, trying fallback", e);
+                    firestore.collection(Constants.COLLECTION_REVIEWS)
+                            .whereEqualTo("productId", productId)
+                            .get()
+                            .addOnSuccessListener(snap2 -> {
+                                List<Review> list = new ArrayList<>();
+                                for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snap2) {
+                                    list.add(mapReviewDoc(doc));
+                                }
+                                list.sort((a, b) -> Long.compare(b.getTimestamp(), a.getTimestamp()));
+                                callback.onSuccess(list);
+                            })
+                            .addOnFailureListener(e2 -> callback.onFailure(e2.getMessage()));
+                });
+    }
+
     public void getReviewsForUser(String userId, ReviewListCallback callback) {
         firestore.collection(Constants.COLLECTION_REVIEWS)
                 .whereEqualTo("revieweeId", userId)
@@ -468,6 +512,10 @@ public class OrderRepository {
         o.setStatus(safeStr(doc, "status", Constants.ORDER_STATUS_REQUESTED));
         Double price = doc.getDouble("price");
         o.setPrice(price != null ? price : 0.0);
+        Long rentDays = doc.getLong("rentDays");
+        o.setRentDays(rentDays != null ? rentDays.intValue() : 0);
+        Double totalPrice = doc.getDouble("totalPrice");
+        o.setTotalPrice(totalPrice != null ? totalPrice : (price != null ? price : 0.0));
         Long req = doc.getLong("requestedAt");
         o.setRequestedAt(req != null ? req : 0L);
         Long upd = doc.getLong("updatedAt");

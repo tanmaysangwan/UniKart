@@ -177,10 +177,7 @@ public class ProfileActivity extends AppCompatActivity {
         }
 
         btnMyListings.setOnClickListener(v -> {
-            // Open orders filtered to selling tab
-            Intent i = new Intent(this, OrdersActivity.class);
-            i.putExtra("tab", 1);
-            startActivity(i);
+            startActivity(new Intent(this, MyListingsActivity.class));
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         });
 
@@ -485,10 +482,8 @@ public class ProfileActivity extends AppCompatActivity {
     private void showDevToolsDialog() {
         String[] options = {
                 "Create Demo Seller Account",
-                "Seed Products Now",
+                "Delete Campus Store Listings",
                 "Clear All Products",
-                "Repair Listing Images",
-                "Rebuild Marketplace Inventory",
                 "Project Info / Viva Mode",
                 "Firebase Diagnostics",
                 "Cancel"
@@ -498,12 +493,10 @@ public class ProfileActivity extends AppCompatActivity {
                 .setItems(options, (dialog, which) -> {
                     switch (which) {
                         case 0: createDemoAccount(); break;
-                        case 1: seedProducts(); break;
+                        case 1: deleteSeedProducts(); break;
                         case 2: clearProducts(); break;
-                        case 3: repairImages(); break;
-                        case 4: rebuildInventory(); break;
-                        case 5: startActivity(new Intent(this, ProjectInfoActivity.class)); break;
-                        case 6: startActivity(new Intent(this, DiagnosticsActivity.class)); break;
+                        case 3: startActivity(new Intent(this, ProjectInfoActivity.class)); break;
+                        case 4: startActivity(new Intent(this, DiagnosticsActivity.class)); break;
                     }
                 })
                 .show();
@@ -537,12 +530,28 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    private void seedProducts() {
-        showInfo("Seeding products...");
-        productRepository.seedMarketplaceIfEmpty(new ProductRepository.ProductCallback() {
-            @Override public void onSuccess(String msg) { runOnUiThread(() -> showInfo("Seed: " + msg)); }
-            @Override public void onFailure(String err) { runOnUiThread(() -> showError(err)); }
-        });
+    private void deleteSeedProducts() {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Campus Store Listings?")
+                .setMessage("This will permanently delete all listings by \"Campus Store\" from the marketplace.")
+                .setPositiveButton("Delete", (d, w) -> {
+                    showInfo("Deleting Campus Store listings...");
+                    adminRepository.deleteSeedProducts(new AdminRepository.AdminCallback() {
+                        @Override
+                        public void onSuccess(String msg) {
+                            runOnUiThread(() -> {
+                                showInfo(msg);
+                                loadStats();
+                            });
+                        }
+                        @Override
+                        public void onFailure(String err) {
+                            runOnUiThread(() -> showError(err));
+                        }
+                    });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void clearProducts() {
@@ -554,63 +563,6 @@ public class ProfileActivity extends AppCompatActivity {
                             @Override public void onSuccess(String msg) { runOnUiThread(() -> showInfo(msg)); }
                             @Override public void onFailure(String err) { runOnUiThread(() -> showError(err)); }
                         }))
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    private void repairImages() {
-        new AlertDialog.Builder(this)
-                .setTitle("Repair Listing Images?")
-                .setMessage("This will scan all products and assign proper images to those with missing or broken images.")
-                .setPositiveButton("Repair", (d, w) -> {
-                    showInfo("Repairing images...");
-                    adminRepository.repairListingImages(new AdminRepository.AdminCallback() {
-                        @Override
-                        public void onSuccess(String msg) {
-                            runOnUiThread(() -> {
-                                new AlertDialog.Builder(ProfileActivity.this)
-                                        .setTitle("Success!")
-                                        .setMessage(msg)
-                                        .setPositiveButton("OK", null)
-                                        .show();
-                            });
-                        }
-
-                        @Override
-                        public void onFailure(String err) {
-                            runOnUiThread(() -> showError(err));
-                        }
-                    });
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    private void rebuildInventory() {
-        new AlertDialog.Builder(this)
-                .setTitle("Rebuild Marketplace Inventory?")
-                .setMessage("This will:\n• Repair all product images\n• Add 30+ new diverse products\n• Avoid duplicates\n\nMakes marketplace feel alive and realistic!")
-                .setPositiveButton("Rebuild", (d, w) -> {
-                    showInfo("Rebuilding marketplace inventory...");
-                    adminRepository.rebuildMarketplaceInventory(new AdminRepository.AdminCallback() {
-                        @Override
-                        public void onSuccess(String msg) {
-                            runOnUiThread(() -> {
-                                new AlertDialog.Builder(ProfileActivity.this)
-                                        .setTitle("Marketplace Rebuilt!")
-                                        .setMessage(msg + "\n\nRefresh the Home page to see all products.")
-                                        .setPositiveButton("OK", null)
-                                        .show();
-                                loadStats(); // Refresh stats
-                            });
-                        }
-
-                        @Override
-                        public void onFailure(String err) {
-                            runOnUiThread(() -> showError(err));
-                        }
-                    });
-                })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
