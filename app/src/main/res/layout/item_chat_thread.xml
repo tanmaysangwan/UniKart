@@ -19,7 +19,7 @@
         android:paddingBottom="12dp"
         android:gravity="center_vertical">
 
-        <!-- Avatar circle with initials -->
+        <!-- Avatar circle with initials + optional photo -->
         <FrameLayout
             android:layout_width="52dp"
             android:layout_height="52dp">
@@ -38,6 +38,14 @@
                 android:textColor="@color/text_white"
                 android:fontFamily="sans-serif-medium"
                 android:text="?"/>
+
+            <ImageView
+                android:id="@+id/ivAvatar"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                android:contentDescription="Profile picture"/>
 
         </FrameLayout>
 

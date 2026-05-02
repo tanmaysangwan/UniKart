@@ -4,82 +4,119 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     android:background="#EBE5DC">
 
     <!-- ===== TOOLBAR ===== -->
-    <!-- WhatsApp-style: back arrow + avatar + name/status in one bar -->
     <LinearLayout
         android:id="@+id/chatHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_gradient_navy"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="4dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="40dp"
-        android:paddingBottom="10dp"
+        android:orientation="vertical"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Back button -->
-        <ImageButton
-            android:id="@+id/btnBack"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:contentDescription="Back"
-            android:tint="@color/text_white"/>
+        <!-- Status-bar spacer — height set in code via WindowInsets -->
+        <View
+            android:id="@+id/statusBarSpacer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"/>
 
-        <!-- Avatar -->
-        <FrameLayout
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="2dp">
-
-            <View
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_avatar_placeholder"/>
-
-            <TextView
-                android:id="@+id/tvHeaderInitial"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:textSize="16sp"
-                android:textColor="@color/text_white"
-                android:fontFamily="sans-serif-medium"
-                android:text="?"/>
-
-        </FrameLayout>
-
-        <!-- Name + subtitle -->
+        <!-- Actual toolbar row -->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:layout_marginStart="10dp">
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="4dp"
+            android:paddingEnd="16dp">
 
-            <TextView
-                android:id="@+id/tvChatTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Chat"
-                android:textSize="16sp"
-                android:textColor="@color/text_white"
-                android:fontFamily="sans-serif-medium"
-                android:maxLines="1"
-                android:ellipsize="end"/>
+            <!-- Back arrow -->
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_arrow_back"
+                android:contentDescription="Back"/>
 
-            <TextView
-                android:id="@+id/tvChatSubtitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="tap for product info"
-                android:textSize="12sp"
-                android:textColor="#AACCCC"/>
+            <!-- Clickable area: avatar + name + subtitle -->
+            <LinearLayout
+                android:id="@+id/headerClickTarget"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <!-- Avatar circle — letter initial + optional photo overlay -->
+                <FrameLayout
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_marginStart="4dp">
+
+                    <!-- Background circle (always visible) -->
+                    <View
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:background="@drawable/bg_avatar_placeholder"/>
+
+                    <!-- Initial letter (hidden once photo loads) -->
+                    <TextView
+                        android:id="@+id/tvHeaderInitial"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:textSize="15sp"
+                        android:textColor="@color/text_white"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="?"/>
+
+                    <!-- Profile photo (invisible until loaded) -->
+                    <ImageView
+                        android:id="@+id/ivHeaderAvatar"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone"
+                        android:contentDescription="Profile picture"/>
+
+                </FrameLayout>
+
+                <!-- Name + subtitle -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="10dp">
+
+                    <TextView
+                        android:id="@+id/tvChatTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Chat"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_white"
+                        android:maxLines="1"
+                        android:ellipsize="end"/>
+
+                    <TextView
+                        android:id="@+id/tvChatSubtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="12sp"
+                        android:textColor="#BBDDDD"
+                        android:maxLines="1"
+                        android:ellipsize="end"/>
+
+                </LinearLayout>
+
+            </LinearLayout>
 
         </LinearLayout>
 
