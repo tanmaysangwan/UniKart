@@ -1,6 +1,5 @@
 package com.example.unikart.adapters;
 
-import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -86,28 +85,28 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
         public void bind(Product product) {
             if (product == null) return;
 
-            // Name
             tvProductName.setText(product.getName() != null ? product.getName() : "Unnamed Product");
 
-            // Price
-            tvPrice.setText(String.format(Locale.getDefault(), "₹ %.0f", product.getPrice()));
+            // Price — show /day for rent
+            boolean isRent = Constants.PRODUCT_TYPE_RENT.equals(product.getType());
+            if (isRent) {
+                tvPrice.setText(String.format(Locale.getDefault(), "₹ %.0f/day", product.getPrice()));
+            } else {
+                tvPrice.setText(String.format(Locale.getDefault(), "₹ %.0f", product.getPrice()));
+            }
 
-            // Seller
             String seller = product.getSellerName() != null ? product.getSellerName() : "Unknown";
             tvSellerName.setText("by " + seller);
 
-            // Badge — use Constants.PRODUCT_TYPE_BUY ("BUY") as the canonical check
-            String type = product.getType();
-            if (Constants.PRODUCT_TYPE_BUY.equals(type)) {
-                tvBadge.setText("FOR SALE");
-                tvBadge.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.badge_buy_text));
-                Drawable bg = ContextCompat.getDrawable(itemView.getContext(), R.drawable.bg_badge_sale);
-                tvBadge.setBackground(bg);
-            } else {
+            // Badge
+            if (isRent) {
                 tvBadge.setText("FOR RENT");
                 tvBadge.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.badge_rent_text));
-                Drawable bg = ContextCompat.getDrawable(itemView.getContext(), R.drawable.bg_badge_rent);
-                tvBadge.setBackground(bg);
+                tvBadge.setBackground(ContextCompat.getDrawable(itemView.getContext(), R.drawable.bg_badge_rent));
+            } else {
+                tvBadge.setText("FOR SALE");
+                tvBadge.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.badge_buy_text));
+                tvBadge.setBackground(ContextCompat.getDrawable(itemView.getContext(), R.drawable.bg_badge_sale));
             }
 
             // Image
@@ -124,33 +123,16 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
             } else {
                 ivProductImage.setVisibility(View.GONE);
                 tvImageEmoji.setVisibility(View.VISIBLE);
-                // Show category emoji
-                tvImageEmoji.setText(getCategoryEmoji(product));
+                tvImageEmoji.setText(Constants.categoryEmoji(product.getCategory()));
             }
-            
+
             // Seller rating
             if (product.getSellerReviewCount() > 0) {
                 tvSellerRating.setVisibility(View.VISIBLE);
-                if (product.getSellerReviewCount() == 0) {
-                    tvSellerRating.setText("⭐ New");
-                } else {
-                    tvSellerRating.setText(String.format(Locale.getDefault(), 
-                            "⭐ %.1f (%d)", product.getSellerRating(), product.getSellerReviewCount()));
-                }
+                tvSellerRating.setText(String.format(Locale.getDefault(),
+                        "⭐ %.1f", product.getSellerRating()));
             } else {
                 tvSellerRating.setVisibility(View.GONE);
-            }
-        }
-
-        private String getCategoryEmoji(Product product) {
-            String cat = product.getCategory() != null ? product.getCategory() : "";
-            switch (cat) {
-                case Constants.CATEGORY_BOOKS:      return "📚";
-                case Constants.CATEGORY_ELECTRONICS: return "💻";
-                case Constants.CATEGORY_FURNITURE:  return "🪑";
-                case Constants.CATEGORY_SPORTS:     return "⚽";
-                case Constants.CATEGORY_CLOTHING:   return "👕";
-                default:                            return "📦";
             }
         }
     }

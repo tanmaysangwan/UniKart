@@ -28,21 +28,9 @@
                     android:id="@+id/ivProductImage"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:background="@drawable/bg_image_placeholder"
+                    android:background="@color/bg_surface"
                     android:scaleType="centerCrop"
                     android:contentDescription="Product Image"/>
-
-                <!-- Placeholder icon -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📦"
-                    android:textSize="56sp"
-                    android:alpha="0.4"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"/>
 
                 <!-- Back button -->
                 <FrameLayout
