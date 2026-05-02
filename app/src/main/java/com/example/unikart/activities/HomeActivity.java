@@ -194,7 +194,7 @@ public class HomeActivity extends AppCompatActivity {
         rvCategories.setAdapter(categoryAdapter);
 
         // Products
-        rvProducts.setLayoutManager(new LinearLayoutManager(this));
+        rvProducts.setLayoutManager(new androidx.recyclerview.widget.GridLayoutManager(this, 2));
         rvProducts.setNestedScrollingEnabled(false);
         productAdapter = new ProductAdapter(filteredProducts);
         productAdapter.setOnProductClickListener(this::openProductDetail);
