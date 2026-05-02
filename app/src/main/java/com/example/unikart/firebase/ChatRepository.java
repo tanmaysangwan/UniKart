@@ -5,6 +5,7 @@ import android.util.Log;
 import com.example.unikart.models.ChatMessage;
 import com.example.unikart.models.ChatThread;
 import com.example.unikart.utils.Constants;
+import com.example.unikart.utils.NotificationSender;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -60,7 +61,6 @@ public class ChatRepository {
             return;
         }
 
-        // Deterministic chat ID — same pair always gets same chat
         String chatId = buildChatId(buyerId, sellerId, productId);
 
         DocumentReference chatRef = firestore.collection(Constants.COLLECTION_CHATS).document(chatId);
@@ -70,26 +70,18 @@ public class ChatRepository {
                         Log.d(TAG, "Chat exists: " + chatId);
                         callback.onSuccess(chatId);
                     } else {
-                        // Create new chat document
-                        Map<String, Object> chatData = new HashMap<>();
-                        chatData.put("chatId", chatId);
-                        chatData.put("buyerId", buyerId);
-                        chatData.put("sellerId", sellerId);
-                        chatData.put("sellerName", sellerName);
-                        chatData.put("productId", productId != null ? productId : "");
-                        chatData.put("productTitle", productTitle != null ? productTitle : "");
-                        chatData.put("createdAt", System.currentTimeMillis());
-                        chatData.put("lastMessage", "");
-                        chatData.put("lastMessageAt", System.currentTimeMillis());
-
-                        chatRef.set(chatData)
-                                .addOnSuccessListener(v -> {
-                                    Log.d(TAG, "Chat created: " + chatId);
-                                    callback.onSuccess(chatId);
+                        // Fetch buyer's name before creating the chat doc
+                        firestore.collection(Constants.COLLECTION_USERS).document(buyerId).get()
+                                .addOnSuccessListener(userDoc -> {
+                                    String buyerName = userDoc.getString("name");
+                                    if (buyerName == null || buyerName.isEmpty()) buyerName = "Buyer";
+                                    createChatDoc(chatRef, chatId, buyerId, buyerName,
+                                            sellerId, sellerName, productId, productTitle, callback);
                                 })
                                 .addOnFailureListener(e -> {
-                                    Log.e(TAG, "Create chat failed", e);
-                                    callback.onFailure("Could not create chat: " + e.getMessage());
+                                    // Still create chat even if name fetch fails
+                                    createChatDoc(chatRef, chatId, buyerId, "Buyer",
+                                            sellerId, sellerName, productId, productTitle, callback);
                                 });
                     }
                 })
@@ -99,8 +91,36 @@ public class ChatRepository {
                 });
     }
 
+    private void createChatDoc(DocumentReference chatRef, String chatId,
+                                String buyerId, String buyerName,
+                                String sellerId, String sellerName,
+                                String productId, String productTitle,
+                                ChatCallback callback) {
+        Map<String, Object> chatData = new HashMap<>();
+        chatData.put("chatId", chatId);
+        chatData.put("buyerId", buyerId);
+        chatData.put("buyerName", buyerName);
+        chatData.put("sellerId", sellerId);
+        chatData.put("sellerName", sellerName);
+        chatData.put("productId", productId != null ? productId : "");
+        chatData.put("productTitle", productTitle != null ? productTitle : "");
+        chatData.put("createdAt", System.currentTimeMillis());
+        chatData.put("lastMessage", "");
+        chatData.put("lastMessageAt", System.currentTimeMillis());
+
+        chatRef.set(chatData)
+                .addOnSuccessListener(v -> {
+                    Log.d(TAG, "Chat created: " + chatId);
+                    callback.onSuccess(chatId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Create chat failed", e);
+                    callback.onFailure("Could not create chat: " + e.getMessage());
+                });
+    }
+
     /**
-     * Sends a message to a chat thread.
+     * Sends a message to a chat thread and notifies the recipient via FCM.
      */
     public void sendMessage(String chatId, String text, MessageCallback callback) {
         String senderId = firebaseManager.getCurrentUserId();
@@ -138,12 +158,52 @@ public class ChatRepository {
                     firestore.collection(Constants.COLLECTION_CHATS)
                             .document(chatId)
                             .update(update);
+
+                    // Notify the other participant
+                    sendChatPushNotification(chatId, senderId, text.trim());
+
                     callback.onSuccess("sent");
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "sendMessage failed", e);
                     callback.onFailure("Failed to send: " + e.getMessage());
                 });
+    }
+
+    /**
+     * Reads the chat document to find the recipient (the participant who is NOT the sender),
+     * then fetches the sender's display name and fires a push notification.
+     */
+    private void sendChatPushNotification(String chatId, String senderId, String messageText) {
+        firestore.collection(Constants.COLLECTION_CHATS).document(chatId).get()
+                .addOnSuccessListener(chatDoc -> {
+                    if (!chatDoc.exists()) return;
+
+                    String buyerId  = chatDoc.getString("buyerId");
+                    String sellerId = chatDoc.getString("sellerId");
+
+                    // Determine who receives the notification
+                    String recipientId = senderId.equals(buyerId) ? sellerId : buyerId;
+                    if (recipientId == null || recipientId.isEmpty()) return;
+
+                    // Fetch sender's display name, then send the push
+                    final String finalRecipientId = recipientId;
+                    firestore.collection(Constants.COLLECTION_USERS).document(senderId).get()
+                            .addOnSuccessListener(userDoc -> {
+                                String senderName = userDoc.getString("name");
+                                if (senderName == null || senderName.isEmpty()) senderName = "Someone";
+
+                                String preview = messageText.length() > 80
+                                        ? messageText.substring(0, 80) + "…"
+                                        : messageText;
+
+                                NotificationSender.sendChatNotification(
+                                        finalRecipientId, senderName, preview, chatId);
+                            })
+                            .addOnFailureListener(e ->
+                                    Log.w(TAG, "Could not fetch sender name for notification", e));
+                })
+                .addOnFailureListener(e -> Log.w(TAG, "Could not read chat doc for notification", e));
     }
 
     /**
@@ -215,14 +275,40 @@ public class ChatRepository {
                             thread.setProductId(doc.getString("productId") != null ? doc.getString("productId") : "");
                             thread.setProductTitle(doc.getString("productTitle") != null ? doc.getString("productTitle") : "");
                             thread.setLastMessage(doc.getString("lastMessage") != null ? doc.getString("lastMessage") : "");
-                            
+
                             Long lastMsgAt = doc.getLong("lastMessageAt");
                             thread.setLastMessageAt(lastMsgAt != null ? lastMsgAt : 0L);
-                            
+
                             Long createdAt = doc.getLong("createdAt");
                             thread.setCreatedAt(createdAt != null ? createdAt : 0L);
-                            
-                            threads.add(thread);
+
+                            // buyerName — stored on new chats; for old chats look it up live
+                            String storedBuyerName = doc.getString("buyerName");
+                            if (storedBuyerName != null && !storedBuyerName.isEmpty()) {
+                                thread.setBuyerName(storedBuyerName);
+                                threads.add(thread);
+                            } else if (buyerId != null && !buyerId.isEmpty()) {
+                                // Old chat doc — backfill from users collection
+                                final ChatThread finalThread = thread;
+                                final List<ChatThread> finalThreads = threads;
+                                firestore.collection(Constants.COLLECTION_USERS)
+                                        .document(buyerId).get()
+                                        .addOnSuccessListener(userDoc -> {
+                                            String name = userDoc.getString("name");
+                                            finalThread.setBuyerName(name != null && !name.isEmpty() ? name : "Buyer");
+                                            // Also backfill the chat doc so we don't look up again
+                                            Map<String, Object> patch = new HashMap<>();
+                                            patch.put("buyerName", finalThread.getBuyerName());
+                                            firestore.collection(Constants.COLLECTION_CHATS)
+                                                    .document(finalThread.getChatId())
+                                                    .update(patch);
+                                        })
+                                        .addOnFailureListener(e2 -> finalThread.setBuyerName("Buyer"));
+                                threads.add(thread);
+                            } else {
+                                thread.setBuyerName("Buyer");
+                                threads.add(thread);
+                            }
                         } catch (Exception e) {
                             Log.w(TAG, "Skipping malformed chat: " + doc.getId(), e);
                         }

@@ -56,13 +56,13 @@ public class ChatActivity extends AppCompatActivity {
         messageList = new ArrayList<>();
 
         // Read intent extras
-        sellerId = getIntent().getStringExtra("seller_id");
-        sellerName = getIntent().getStringExtra("seller_name");
-        productId = getIntent().getStringExtra("product_id");
+        sellerId     = getIntent().getStringExtra("seller_id");
+        sellerName   = getIntent().getStringExtra("seller_name");
+        productId    = getIntent().getStringExtra("product_id");
         productTitle = getIntent().getStringExtra("product_title");
 
-        if (sellerName == null) sellerName = "Seller";
-        if (sellerId == null) sellerId = "";
+        if (sellerName == null) sellerName = "Chat";
+        if (sellerId   == null) sellerId   = "";
 
         initViews();
         setupRecyclerView();
@@ -71,18 +71,37 @@ public class ChatActivity extends AppCompatActivity {
 
     private void initViews() {
         rvChatMessages = findViewById(R.id.rvChatMessages);
-        etMessage = findViewById(R.id.etMessage);
-        btnSend = findViewById(R.id.btnSend);
-        tvChatTitle = findViewById(R.id.tvChatTitle);
-        progressBar = findViewById(R.id.progressBar);
+        etMessage      = findViewById(R.id.etMessage);
+        btnSend        = findViewById(R.id.btnSend);
+        tvChatTitle    = findViewById(R.id.tvChatTitle);
+        progressBar    = findViewById(R.id.progressBar);
 
+        // Header: name
         tvChatTitle.setText(sellerName);
 
+        // Header: initial in avatar
+        TextView tvHeaderInitial = findViewById(R.id.tvHeaderInitial);
+        if (tvHeaderInitial != null && sellerName.length() > 0) {
+            tvHeaderInitial.setText(String.valueOf(sellerName.charAt(0)).toUpperCase());
+        }
+
+        // Header: product subtitle
+        TextView tvChatSubtitle = findViewById(R.id.tvChatSubtitle);
+        if (tvChatSubtitle != null) {
+            if (productTitle != null && !productTitle.isEmpty()) {
+                tvChatSubtitle.setText(productTitle);
+            } else {
+                tvChatSubtitle.setVisibility(View.GONE);
+            }
+        }
+
         ImageButton btnBack = findViewById(R.id.btnBack);
-        btnBack.setOnClickListener(v -> {
-            finish();
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        });
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> {
+                finish();
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+            });
+        }
 
         btnSend.setOnClickListener(v -> sendMessage());
     }

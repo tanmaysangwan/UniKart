@@ -5,6 +5,7 @@ import android.util.Log;
 import com.example.unikart.models.Order;
 import com.example.unikart.models.Review;
 import com.example.unikart.utils.Constants;
+import com.example.unikart.utils.NotificationSender;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
@@ -50,6 +51,7 @@ public class OrderRepository {
                 .addOnSuccessListener(doc -> {
                     String buyerName = doc.getString("name");
                     if (buyerName == null) buyerName = "Unknown";
+                    final String finalBuyerName = buyerName;
 
                     Map<String, Object> data = new HashMap<>();
                     data.put("orderId", orderId);
@@ -58,7 +60,7 @@ public class OrderRepository {
                     data.put("productImageUrl", productImageUrl != null ? productImageUrl : "");
                     data.put("price", price);
                     data.put("buyerId", buyerId);
-                    data.put("buyerName", buyerName);
+                    data.put("buyerName", finalBuyerName);
                     data.put("sellerId", sellerId != null ? sellerId : "");
                     data.put("sellerName", sellerName != null ? sellerName : "");
                     data.put("type", type != null ? type : Constants.PRODUCT_TYPE_BUY);
@@ -70,6 +72,14 @@ public class OrderRepository {
                             .set(data)
                             .addOnSuccessListener(v -> {
                                 Log.d(TAG, "Order created: " + orderId);
+                                // Notify the seller about the new request
+                                String orderType = type != null ? type : Constants.PRODUCT_TYPE_BUY;
+                                String action = Constants.PRODUCT_TYPE_RENT.equals(orderType) ? "Rent" : "Buy";
+                                String notifTitle = "New " + action + " Request";
+                                String notifBody  = finalBuyerName + " wants to " + action.toLowerCase()
+                                        + " \"" + (productTitle != null ? productTitle : "your item") + "\"";
+                                NotificationSender.sendOrderNotification(
+                                        sellerId, notifTitle, notifBody, true);
                                 callback.onSuccess(orderId);
                             })
                             .addOnFailureListener(e -> {
@@ -112,12 +122,101 @@ public class OrderRepository {
                 .update(update)
                 .addOnSuccessListener(v -> {
                     Log.d(TAG, "Order " + orderId + " → " + newStatus);
+                    // Send push notification to the relevant party
+                    sendOrderStatusNotification(orderId, newStatus);
                     callback.onSuccess(newStatus);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "updateOrderStatus failed", e);
                     callback.onFailure("Failed to update order: " + e.getMessage());
                 });
+    }
+
+    /**
+     * Reads the order document and sends a push notification to the appropriate party
+     * based on the new status.
+     */
+    private void sendOrderStatusNotification(String orderId, String newStatus) {
+        firestore.collection(Constants.COLLECTION_ORDERS).document(orderId).get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) return;
+
+                    String buyerId    = doc.getString("buyerId");
+                    String sellerId   = doc.getString("sellerId");
+                    String buyerName  = doc.getString("buyerName");
+                    String sellerName = doc.getString("sellerName");
+                    String productTitle = doc.getString("productTitle");
+                    String type       = doc.getString("type");
+                    boolean isRent    = Constants.PRODUCT_TYPE_RENT.equals(type);
+
+                    String title;
+                    String body;
+                    String recipientId;
+                    boolean openSellerTab;
+
+                    switch (newStatus) {
+                        case Constants.ORDER_STATUS_ACCEPTED:
+                            // Buyer is notified: their request was accepted
+                            recipientId   = buyerId;
+                            openSellerTab = false;
+                            title = "Request Accepted!";
+                            body  = sellerName + " accepted your "
+                                    + (isRent ? "rent" : "buy") + " request for \""
+                                    + productTitle + "\"";
+                            break;
+
+                        case Constants.ORDER_STATUS_REJECTED:
+                            // Buyer is notified: their request was rejected
+                            recipientId   = buyerId;
+                            openSellerTab = false;
+                            title = "Request Declined";
+                            body  = sellerName + " declined your request for \""
+                                    + productTitle + "\"";
+                            break;
+
+                        case Constants.ORDER_STATUS_HANDED_OVER:
+                            // Buyer is notified: item has been handed over
+                            recipientId   = buyerId;
+                            openSellerTab = false;
+                            title = "Item Handed Over";
+                            body  = "\"" + productTitle + "\" has been marked as handed over by "
+                                    + sellerName;
+                            break;
+
+                        case Constants.ORDER_STATUS_COMPLETED:
+                            // Seller is notified: buyer confirmed receipt (BUY)
+                            recipientId   = sellerId;
+                            openSellerTab = true;
+                            title = "Sale Completed!";
+                            body  = buyerName + " confirmed receiving \"" + productTitle + "\"";
+                            break;
+
+                        case Constants.ORDER_STATUS_RETURN_PENDING:
+                            // Seller is notified: buyer wants to return (RENT)
+                            recipientId   = sellerId;
+                            openSellerTab = true;
+                            title = "Return Requested";
+                            body  = buyerName + " wants to return \"" + productTitle + "\"";
+                            break;
+
+                        case Constants.ORDER_STATUS_RETURNED:
+                            // Buyer is notified: seller confirmed return
+                            recipientId   = buyerId;
+                            openSellerTab = false;
+                            title = "Return Confirmed";
+                            body  = sellerName + " confirmed the return of \"" + productTitle + "\"";
+                            break;
+
+                        default:
+                            return; // No notification for other statuses
+                    }
+
+                    if (recipientId != null && !recipientId.isEmpty()) {
+                        NotificationSender.sendOrderNotification(
+                                recipientId, title, body, openSellerTab);
+                    }
+                })
+                .addOnFailureListener(e -> Log.w(TAG, "sendOrderStatusNotification: could not read order", e));
     }
 
     // ─── Get Orders as Buyer ──────────────────────────────────────────────────

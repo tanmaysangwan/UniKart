@@ -3,6 +3,7 @@ package com.example.unikart.models;
 public class ChatThread {
     private String chatId;
     private String buyerId;
+    private String buyerName;
     private String sellerId;
     private String sellerName;
     private String productId;
@@ -32,6 +33,9 @@ public class ChatThread {
 
     public String getBuyerId() { return buyerId; }
     public void setBuyerId(String buyerId) { this.buyerId = buyerId; }
+
+    public String getBuyerName() { return buyerName != null ? buyerName : ""; }
+    public void setBuyerName(String buyerName) { this.buyerName = buyerName; }
 
     public String getSellerId() { return sellerId; }
     public void setSellerId(String sellerId) { this.sellerId = sellerId; }

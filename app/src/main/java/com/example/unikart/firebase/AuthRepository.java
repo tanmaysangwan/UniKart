@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.example.unikart.models.User;
 import com.example.unikart.utils.Constants;
+import com.example.unikart.utils.FCMTokenManager;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
@@ -140,6 +141,11 @@ public class AuthRepository {
         auth.signInWithEmailAndPassword(email, password)
                 .addOnSuccessListener(authResult -> {
                     Log.d(TAG, "Login successful");
+                    // Save/refresh FCM token so this device receives push notifications
+                    FirebaseUser loggedInUser = authResult.getUser();
+                    if (loggedInUser != null) {
+                        FCMTokenManager.refreshAndSaveToken(loggedInUser.getUid());
+                    }
                     callback.onSuccess("Login successful");
                 })
                 .addOnFailureListener(e -> {
@@ -254,6 +260,11 @@ public class AuthRepository {
     }
 
     public void logout() {
+        // Clear FCM token so this device stops receiving notifications after logout
+        String uid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
+        if (uid != null) {
+            FCMTokenManager.clearToken(uid);
+        }
         auth.signOut();
     }
 

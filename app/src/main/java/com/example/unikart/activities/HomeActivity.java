@@ -1,6 +1,8 @@
 package com.example.unikart.activities;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -13,7 +15,10 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -69,6 +74,11 @@ public class HomeActivity extends AppCompatActivity {
     private FilterState filterState = new FilterState();
     private boolean isFirstLoad = true;
 
+    // Android 13+ notification permission
+    private final ActivityResultLauncher<String> notifPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted ->
+                    Log.d(TAG, "POST_NOTIFICATIONS permission " + (granted ? "granted" : "denied")));
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,12 +87,26 @@ public class HomeActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
         productRepository = new ProductRepository();
 
+        requestNotificationPermissionIfNeeded();
         initViews();
         setupGreeting();
         setupRecyclerViews();
         setupSearch();
         setupBottomNavigation();
         seedThenLoad();
+    }
+
+    /**
+     * Requests POST_NOTIFICATIONS permission on Android 13+ (API 33).
+     * On older versions the permission is granted automatically.
+     */
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
     }
 
     /**

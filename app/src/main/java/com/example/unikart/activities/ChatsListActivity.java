@@ -1,9 +1,12 @@
 package com.example.unikart.activities;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowInsets;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -57,6 +60,27 @@ public class ChatsListActivity extends AppCompatActivity {
         tvEmptyState = findViewById(R.id.tvEmptyState);
         progressBar = findViewById(R.id.progressBar);
         bottomNavigation = findViewById(R.id.bottomNavigation);
+
+        // Apply status bar height as top padding on the header so the gradient
+        // fills behind the status bar and the text sits below it
+        LinearLayout header = findViewById(R.id.chatListHeader);
+        if (header != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                header.setOnApplyWindowInsetsListener((v, insets) -> {
+                    int statusBarHeight = insets.getInsets(WindowInsets.Type.statusBars()).top;
+                    v.setPadding(v.getPaddingLeft(), statusBarHeight + 16,
+                            v.getPaddingRight(), v.getPaddingBottom());
+                    return insets;
+                });
+            } else {
+                header.setOnApplyWindowInsetsListener((v, insets) -> {
+                    int statusBarHeight = insets.getSystemWindowInsetTop();
+                    v.setPadding(v.getPaddingLeft(), statusBarHeight + 16,
+                            v.getPaddingRight(), v.getPaddingBottom());
+                    return insets;
+                });
+            }
+        }
     }
 
     private void setupRecyclerView() {

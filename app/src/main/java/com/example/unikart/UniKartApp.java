@@ -3,6 +3,9 @@ package com.example.unikart;
 import android.app.Application;
 import android.util.Log;
 
+import com.example.unikart.utils.FCMTokenManager;
+import com.example.unikart.utils.NotificationHelper;
+import com.example.unikart.utils.NotificationSender;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
@@ -15,6 +18,16 @@ public class UniKartApp extends Application {
     public void onCreate() {
         super.onCreate();
         initFirebase();
+        NotificationHelper.createChannels(this);
+        NotificationSender.init(this);
+        refreshFCMTokenIfLoggedIn();
+    }
+
+    private void refreshFCMTokenIfLoggedIn() {
+        FirebaseAuth auth = FirebaseAuth.getInstance();
+        if (auth.getCurrentUser() != null) {
+            FCMTokenManager.refreshAndSaveToken(auth.getCurrentUser().getUid());
+        }
     }
 
     private void initFirebase() {
