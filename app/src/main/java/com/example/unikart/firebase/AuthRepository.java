@@ -114,11 +114,15 @@ public class AuthRepository {
                 .set(userData)
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "User document created for: " + uid);
+                    // Set FCM token for new user
+                    FCMTokenManager.refreshAndSaveToken(uid);
                     callback.onSuccess("Account created! A verification email has been sent.");
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Firestore write failed", e);
                     // Auth succeeded — still let user in, Firestore can be retried
+                    // Set FCM token anyway
+                    FCMTokenManager.refreshAndSaveToken(uid);
                     callback.onSuccess("Account created! (Profile save failed — will retry on next login)");
                 });
     }

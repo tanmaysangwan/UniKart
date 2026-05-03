@@ -84,6 +84,7 @@ public class NotificationSender {
      * Looks up their FCM token from Firestore, then calls FCM v1.
      */
     public static void sendChatNotification(String recipientUserId,
+                                            String senderId,
                                             String senderName,
                                             String messagePreview,
                                             String chatId) {
@@ -95,6 +96,7 @@ public class NotificationSender {
                 JSONObject data = new JSONObject();
                 data.put("type", Constants.NOTIF_TYPE_CHAT);
                 data.put("chat_id", chatId != null ? chatId : "");
+                data.put("sender_id", senderId != null ? senderId : "");
                 data.put("sender_name", senderName != null ? senderName : "");
 
                 postFcmMessage(fcmToken,

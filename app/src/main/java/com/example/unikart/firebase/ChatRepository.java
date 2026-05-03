@@ -198,7 +198,7 @@ public class ChatRepository {
                                         : messageText;
 
                                 NotificationSender.sendChatNotification(
-                                        finalRecipientId, senderName, preview, chatId);
+                                        finalRecipientId, senderId, senderName, preview, chatId);
                             })
                             .addOnFailureListener(e ->
                                     Log.w(TAG, "Could not fetch sender name for notification", e));

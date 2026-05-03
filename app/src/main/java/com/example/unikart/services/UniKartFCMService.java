@@ -68,6 +68,17 @@ public class UniKartFCMService extends FirebaseMessagingService {
         Map<String, String> data = remoteMessage.getData();
         String type = data.get("type");
 
+        // PREVENT SELF-NOTIFICATIONS: Check if the sender is the current user
+        String senderId = data.get("sender_id");
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : null;
+
+        if (senderId != null && senderId.equals(currentUserId)) {
+            Log.d(TAG, "Ignoring notification from self (sender_id matches current user)");
+            return;
+        }
+
         if (Constants.NOTIF_TYPE_CHAT.equals(type)) {
             handleChatMessage(data, remoteMessage.getNotification());
         } else if (Constants.NOTIF_TYPE_ORDER.equals(type)) {

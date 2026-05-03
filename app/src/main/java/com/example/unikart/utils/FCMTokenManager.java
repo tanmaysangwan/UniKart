@@ -77,13 +77,13 @@ public class FCMTokenManager {
         if (userId == null || userId.isEmpty()) return;
 
         Map<String, Object> update = new HashMap<>();
-        update.put(FIELD_FCM_TOKEN, "");
+        update.put(FIELD_FCM_TOKEN, null);
 
         FirebaseFirestore.getInstance()
                 .collection(Constants.COLLECTION_USERS)
                 .document(userId)
-                .update(update)
+                .set(update, com.google.firebase.firestore.SetOptions.merge())
                 .addOnSuccessListener(v -> Log.d(TAG, "FCM token cleared for user: " + userId))
-                .addOnFailureListener(e -> Log.w(TAG, "Failed to clear FCM token (non-critical)", e));
+                .addOnFailureListener(e -> Log.w(TAG, "Failed to clear FCM token", e));
     }
 }
