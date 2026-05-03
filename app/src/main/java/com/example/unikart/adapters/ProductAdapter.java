@@ -141,13 +141,14 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
                 tvImageEmoji.setText(Constants.categoryEmoji(product.getCategory()));
             }
 
-            // Seller rating
-            if (product.getSellerReviewCount() > 0) {
+            // Seller rating - only show if seller has reviews AND a positive rating
+            if (product.getSellerReviewCount() > 0 && product.getSellerRating() > 0) {
                 tvSellerRating.setVisibility(View.VISIBLE);
                 tvSellerRating.setText(String.format(Locale.getDefault(),
                         "⭐ %.1f", product.getSellerRating()));
             } else {
                 tvSellerRating.setVisibility(View.GONE);
+                tvSellerRating.setText(""); // Clear any previous text
             }
         }
     }

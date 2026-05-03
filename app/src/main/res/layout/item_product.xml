@@ -114,7 +114,6 @@
                     android:id="@+id/tvSellerRating"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="⭐ 4.8"
                     android:textSize="12sp"
                     android:textColor="@color/text_secondary"
                     android:fontFamily="sans-serif-medium"

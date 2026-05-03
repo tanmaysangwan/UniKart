@@ -163,8 +163,23 @@ public class ProductRepository {
                             List<Product> sellerProducts = productsBySeller.get(sellerId);
                             if (sellerProducts != null) {
                                 for (Product p : sellerProducts) {
-                                    p.setSellerRating(rating != null ? rating : 0.0);
-                                    p.setSellerReviewCount(reviewCount != null ? reviewCount.intValue() : 0);
+                                    int count = reviewCount != null ? reviewCount.intValue() : 0;
+                                    // Only set rating if seller has reviews, otherwise force to 0
+                                    if (count > 0 && rating != null && rating > 0) {
+                                        p.setSellerRating(rating);
+                                    } else {
+                                        p.setSellerRating(0.0);
+                                    }
+                                    p.setSellerReviewCount(count);
+                                }
+                            }
+                        } else {
+                            // Seller document doesn't exist, set defaults
+                            List<Product> sellerProducts = productsBySeller.get(sellerId);
+                            if (sellerProducts != null) {
+                                for (Product p : sellerProducts) {
+                                    p.setSellerRating(0.0);
+                                    p.setSellerReviewCount(0);
                                 }
                             }
                         }
@@ -173,6 +188,14 @@ public class ProductRepository {
                     })
                     .addOnFailureListener(e -> {
                         Log.w(TAG, "Failed to load seller data for " + sellerId, e);
+                        // On failure, set defaults to avoid showing incorrect ratings
+                        List<Product> sellerProducts = productsBySeller.get(sellerId);
+                        if (sellerProducts != null) {
+                            for (Product p : sellerProducts) {
+                                p.setSellerRating(0.0);
+                                p.setSellerReviewCount(0);
+                            }
+                        }
                         remaining[0]--;
                         if (remaining[0] == 0) callback.onSuccess(products);
                     });

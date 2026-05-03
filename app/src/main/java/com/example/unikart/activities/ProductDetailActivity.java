@@ -245,9 +245,9 @@ public class ProductDetailActivity extends AppCompatActivity {
             }
         }
         
-        // Display seller rating
+        // Display seller rating - only show if seller has reviews AND a positive rating
         if (tvSellerRating != null) {
-            if (product.getSellerReviewCount() > 0) {
+            if (product.getSellerReviewCount() > 0 && product.getSellerRating() > 0) {
                 tvSellerRating.setVisibility(View.VISIBLE);
                 tvSellerRating.setText(String.format(Locale.getDefault(), 
                         "⭐ %.1f (%d)", product.getSellerRating(), product.getSellerReviewCount()));

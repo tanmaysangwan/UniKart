@@ -448,10 +448,12 @@ public class HomeActivity extends AppCompatActivity {
         if (ratingFilter != FilterState.RatingFilter.ALL) {
             switch (ratingFilter) {
                 case HIGHLY_RATED:
-                    if (p.getSellerRating() < 4.5) return false;
+                    // Only show sellers with reviews AND high rating
+                    if (p.getSellerReviewCount() == 0 || p.getSellerRating() < 4.5) return false;
                     break;
                 case GOOD_SELLERS:
-                    if (p.getSellerRating() < 4.0) return false;
+                    // Only show sellers with reviews AND good rating
+                    if (p.getSellerReviewCount() == 0 || p.getSellerRating() < 4.0) return false;
                     break;
                 case TRUSTED_SELLERS:
                     if (p.getSellerReviewCount() < 10) return false;
