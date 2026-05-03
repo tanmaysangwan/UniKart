@@ -23,11 +23,8 @@ import androidx.core.content.FileProvider;
 
 import com.bumptech.glide.Glide;
 import com.example.unikart.R;
-import com.example.unikart.firebase.AdminRepository;
 import com.example.unikart.firebase.AuthRepository;
 import com.example.unikart.firebase.FirebaseManager;
-import com.example.unikart.firebase.OrderRepository;
-import com.example.unikart.firebase.ProductRepository;
 import com.example.unikart.utils.CloudinaryUploader;
 import com.example.unikart.utils.Constants;
 import com.example.unikart.utils.SessionManager;
@@ -49,9 +46,6 @@ public class ProfileActivity extends AppCompatActivity {
 
     private SessionManager sessionManager;
     private AuthRepository authRepository;
-    private AdminRepository adminRepository;
-    private ProductRepository productRepository;
-    private OrderRepository orderRepository;
     private View rootView;
 
     private TextView tvBoughtCount;
@@ -138,9 +132,6 @@ public class ProfileActivity extends AppCompatActivity {
 
         sessionManager    = new SessionManager(this);
         authRepository    = new AuthRepository();
-        adminRepository   = new AdminRepository();
-        productRepository = new ProductRepository();
-        orderRepository   = new OrderRepository();
         rootView          = findViewById(android.R.id.content);
 
         initViews();
@@ -153,7 +144,6 @@ public class ProfileActivity extends AppCompatActivity {
         MaterialCardView btnMyListings = findViewById(R.id.btnMyListings);
         MaterialCardView btnReviews    = findViewById(R.id.btnReviews);
         MaterialButton btnLogout   = findViewById(R.id.btnLogout);
-        TextView btnDevTools       = findViewById(R.id.btnDevTools);
         BottomNavigationView bottomNavigation = findViewById(R.id.bottomNavigation);
         ivProfileAvatar = findViewById(R.id.ivProfileAvatar);
         tvUserName = findViewById(R.id.tvUserName);
@@ -197,10 +187,6 @@ public class ProfileActivity extends AppCompatActivity {
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
             finish();
         });
-
-        if (btnDevTools != null) {
-            btnDevTools.setOnClickListener(v -> showDevToolsDialog());
-        }
 
         setupBottomNavigation(bottomNavigation);
     }
@@ -489,96 +475,6 @@ public class ProfileActivity extends AppCompatActivity {
                                 : "—");
                     }
                 });
-    }
-
-    // ── Dev tools ─────────────────────────────────────────────────────────────
-
-    private void showDevToolsDialog() {
-        String[] options = {
-                "Create Demo Seller Account",
-                "Delete Campus Store Listings",
-                "Clear All Products",
-                "Project Info / Viva Mode",
-                "Firebase Diagnostics",
-                "Cancel"
-        };
-        new AlertDialog.Builder(this)
-                .setTitle("Developer Tools")
-                .setItems(options, (dialog, which) -> {
-                    switch (which) {
-                        case 0: createDemoAccount(); break;
-                        case 1: deleteSeedProducts(); break;
-                        case 2: clearProducts(); break;
-                        case 3: startActivity(new Intent(this, ProjectInfoActivity.class)); break;
-                        case 4: startActivity(new Intent(this, DiagnosticsActivity.class)); break;
-                    }
-                })
-                .show();
-    }
-
-    private void createDemoAccount() {
-        showInfo("Creating demo account...");
-        adminRepository.ensureDemoAccountExists(new AdminRepository.AdminCallback() {
-            @Override
-            public void onSuccess(String message) {
-                runOnUiThread(() -> {
-                    new AlertDialog.Builder(ProfileActivity.this)
-                            .setTitle("Done")
-                            .setMessage(message + "\n\nEmail: " + AdminRepository.DEMO_EMAIL
-                                    + "\nPassword: " + AdminRepository.DEMO_PASSWORD)
-                            .setPositiveButton("OK", null)
-                            .show();
-                    if (!authRepository.isUserLoggedIn()) {
-                        sessionManager.logout();
-                        Intent i = new Intent(ProfileActivity.this, WelcomeActivity.class);
-                        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                        startActivity(i);
-                        finish();
-                    }
-                });
-            }
-            @Override
-            public void onFailure(String error) {
-                runOnUiThread(() -> showError(error));
-            }
-        });
-    }
-
-    private void deleteSeedProducts() {
-        new AlertDialog.Builder(this)
-                .setTitle("Delete Campus Store Listings?")
-                .setMessage("This will permanently delete all listings by \"Campus Store\" from the marketplace.")
-                .setPositiveButton("Delete", (d, w) -> {
-                    showInfo("Deleting Campus Store listings...");
-                    adminRepository.deleteSeedProducts(new AdminRepository.AdminCallback() {
-                        @Override
-                        public void onSuccess(String msg) {
-                            runOnUiThread(() -> {
-                                showInfo(msg);
-                                loadStats();
-                            });
-                        }
-                        @Override
-                        public void onFailure(String err) {
-                            runOnUiThread(() -> showError(err));
-                        }
-                    });
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    private void clearProducts() {
-        new AlertDialog.Builder(this)
-                .setTitle("Clear All Products?")
-                .setMessage("This will delete all products. Cannot be undone.")
-                .setPositiveButton("Clear", (d, w) ->
-                        adminRepository.clearAllProducts(new AdminRepository.AdminCallback() {
-                            @Override public void onSuccess(String msg) { runOnUiThread(() -> showInfo(msg)); }
-                            @Override public void onFailure(String err) { runOnUiThread(() -> showError(err)); }
-                        }))
-                .setNegativeButton("Cancel", null)
-                .show();
     }
 
     private void showInfo(String msg) {

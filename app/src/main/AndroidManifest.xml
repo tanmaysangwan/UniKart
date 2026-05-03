@@ -82,11 +82,6 @@
             android:exported="false"/>
 
         <activity
-            android:name=".activities.DiagnosticsActivity"
-            android:exported="true"
-            android:label="Firebase Diagnostics"/>
-
-        <activity
             android:name=".activities.OrdersActivity"
             android:exported="false"
             android:launchMode="singleTop"/>
@@ -98,10 +93,6 @@
 
         <activity
             android:name=".activities.ReviewsActivity"
-            android:exported="false"/>
-
-        <activity
-            android:name=".activities.ProjectInfoActivity"
             android:exported="false"/>
 
         <activity

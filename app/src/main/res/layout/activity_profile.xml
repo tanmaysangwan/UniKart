@@ -417,18 +417,6 @@
                     app:cornerRadius="12dp"
                     android:layout_marginTop="16dp"/>
 
-                <!-- Developer Tools -->
-                <TextView
-                    android:id="@+id/btnDevTools"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Developer Tools"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_hint"
-                    android:paddingTop="16dp"
-                    android:paddingBottom="16dp"
-                    android:layout_gravity="center_horizontal"/>
-
             </LinearLayout>
 
         </LinearLayout>

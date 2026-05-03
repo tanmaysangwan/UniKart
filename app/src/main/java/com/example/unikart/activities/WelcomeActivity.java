@@ -18,7 +18,6 @@ public class WelcomeActivity extends AppCompatActivity {
 
         MaterialButton btnLogin = findViewById(R.id.btnLogin);
         MaterialButton btnRegister = findViewById(R.id.btnRegister);
-        TextView btnDiagnostics = findViewById(R.id.btnDiagnostics);
 
         btnLogin.setOnClickListener(v -> {
             startActivity(new Intent(this, LoginActivity.class));
@@ -28,10 +27,6 @@ public class WelcomeActivity extends AppCompatActivity {
         btnRegister.setOnClickListener(v -> {
             startActivity(new Intent(this, RegisterActivity.class));
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        });
-
-        btnDiagnostics.setOnClickListener(v -> {
-            startActivity(new Intent(this, DiagnosticsActivity.class));
         });
     }
 }
