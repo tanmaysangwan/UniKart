@@ -209,12 +209,30 @@ public class ProductRepository {
                             if (sellerProducts != null) {
                                 for (Product p : sellerProducts) {
                                     int count = reviewCount != null ? reviewCount.intValue() : 0;
+                                    // CRITICAL FIX: Only set rating if seller has reviews
+                                    // If reviewCount is 0 or null, rating MUST be 0 regardless of what's in DB
                                     if (count > 0 && rating != null && rating > 0) {
                                         p.setSellerRating(rating);
+                                        p.setSellerReviewCount(count);
                                     } else {
+                                        // No reviews = no rating, force to 0
                                         p.setSellerRating(0.0);
+                                        p.setSellerReviewCount(0);
+                                        
+                                        // Fix bad data in Firestore if rating is set but reviewCount is 0
+                                        if (rating != null && rating > 0 && count == 0) {
+                                            Log.w(TAG, "Fixing bad rating data for seller " + sellerId + 
+                                                    ": rating=" + rating + " but reviewCount=0");
+                                            Map<String, Object> fix = new HashMap<>();
+                                            fix.put("rating", 0.0);
+                                            fix.put("reviewCount", 0);
+                                            firestore.collection(Constants.COLLECTION_USERS)
+                                                    .document(sellerId)
+                                                    .update(fix)
+                                                    .addOnSuccessListener(v -> Log.d(TAG, "Fixed rating for " + sellerId))
+                                                    .addOnFailureListener(e -> Log.w(TAG, "Could not fix rating", e));
+                                        }
                                     }
-                                    p.setSellerReviewCount(count);
                                 }
                             }
                         } else {
@@ -279,13 +297,30 @@ public class ProductRepository {
                             if (sellerProducts != null) {
                                 for (Product p : sellerProducts) {
                                     int count = reviewCount != null ? reviewCount.intValue() : 0;
-                                    // Only set rating if seller has reviews, otherwise force to 0
+                                    // CRITICAL FIX: Only set rating if seller has reviews
+                                    // If reviewCount is 0 or null, rating MUST be 0 regardless of what's in DB
                                     if (count > 0 && rating != null && rating > 0) {
                                         p.setSellerRating(rating);
+                                        p.setSellerReviewCount(count);
                                     } else {
+                                        // No reviews = no rating, force to 0
                                         p.setSellerRating(0.0);
+                                        p.setSellerReviewCount(0);
+                                        
+                                        // Fix bad data in Firestore if rating is set but reviewCount is 0
+                                        if (rating != null && rating > 0 && count == 0) {
+                                            Log.w(TAG, "Fixing bad rating data for seller " + sellerId + 
+                                                    ": rating=" + rating + " but reviewCount=0");
+                                            Map<String, Object> fix = new HashMap<>();
+                                            fix.put("rating", 0.0);
+                                            fix.put("reviewCount", 0);
+                                            firestore.collection(Constants.COLLECTION_USERS)
+                                                    .document(sellerId)
+                                                    .update(fix)
+                                                    .addOnSuccessListener(v -> Log.d(TAG, "Fixed rating for " + sellerId))
+                                                    .addOnFailureListener(e -> Log.w(TAG, "Could not fix rating", e));
+                                        }
                                     }
-                                    p.setSellerReviewCount(count);
                                 }
                             }
                         } else {
