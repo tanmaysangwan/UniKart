@@ -5,6 +5,7 @@ import android.util.Log;
 import com.example.unikart.models.Product;
 import com.example.unikart.utils.Constants;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
@@ -29,9 +30,19 @@ public class ProductRepository {
         void onFailure(String error);
     }
 
+    public interface ProductListListener {
+        void onProducts(List<Product> products);
+        void onError(String error);
+    }
+
     public interface ProductDetailCallback {
         void onSuccess(Product product);
         void onFailure(String error);
+    }
+
+    public interface ProductDetailListener {
+        void onProduct(Product product);
+        void onError(String error);
     }
 
     public ProductRepository() {
@@ -99,7 +110,7 @@ public class ProductRepository {
                 });
     }
 
-    // ─── Get All Products ─────────────────────────────────────────────────────
+    // ─── Get All Products (One-time fetch - deprecated, use listener) ────────
 
     public void getAllProducts(ProductListCallback callback) {
         // Fetch all products and filter available ones in code
@@ -127,6 +138,110 @@ public class ProductRepository {
                     Log.e(TAG, "getAllProducts failed", e);
                     callback.onFailure("Could not load products: " + e.getMessage());
                 });
+    }
+
+    // ─── Listen to All Products (Real-time) ──────────────────────────────────
+
+    /**
+     * Attaches a real-time listener to all available products.
+     * Returns ListenerRegistration so caller can remove it in onStop/onDestroy.
+     */
+    public ListenerRegistration listenToAllProducts(ProductListListener listener) {
+        return firestore.collection(Constants.COLLECTION_PRODUCTS)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .addSnapshotListener((querySnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "listenToAllProducts error", error);
+                        listener.onError("Could not load products: " + error.getMessage());
+                        return;
+                    }
+                    if (querySnapshot == null) return;
+
+                    List<Product> products = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
+                        try {
+                            Product product = mapDocToProduct(doc);
+                            // Only include available products
+                            if (product.isAvailable()) {
+                                products.add(product);
+                            }
+                        } catch (Exception e) {
+                            Log.w(TAG, "Skipping malformed product doc: " + doc.getId(), e);
+                        }
+                    }
+                    Log.d(TAG, "Real-time update: " + products.size() + " available products");
+                    enrichProductsWithSellerRatingsForListener(products, listener);
+                });
+    }
+
+    private void enrichProductsWithSellerRatingsForListener(List<Product> products, ProductListListener listener) {
+        if (products.isEmpty()) {
+            listener.onProducts(products);
+            return;
+        }
+
+        Map<String, List<Product>> productsBySeller = new HashMap<>();
+        for (Product p : products) {
+            String sellerId = p.getSellerId();
+            if (sellerId != null && !sellerId.isEmpty()) {
+                if (!productsBySeller.containsKey(sellerId)) {
+                    productsBySeller.put(sellerId, new ArrayList<>());
+                }
+                productsBySeller.get(sellerId).add(p);
+            }
+        }
+
+        if (productsBySeller.isEmpty()) {
+            listener.onProducts(products);
+            return;
+        }
+
+        final int[] remaining = {productsBySeller.size()};
+        for (String sellerId : productsBySeller.keySet()) {
+            firestore.collection(Constants.COLLECTION_USERS)
+                    .document(sellerId)
+                    .get()
+                    .addOnSuccessListener(doc -> {
+                        if (doc.exists()) {
+                            Double rating = doc.getDouble("rating");
+                            Long reviewCount = doc.getLong("reviewCount");
+                            List<Product> sellerProducts = productsBySeller.get(sellerId);
+                            if (sellerProducts != null) {
+                                for (Product p : sellerProducts) {
+                                    int count = reviewCount != null ? reviewCount.intValue() : 0;
+                                    if (count > 0 && rating != null && rating > 0) {
+                                        p.setSellerRating(rating);
+                                    } else {
+                                        p.setSellerRating(0.0);
+                                    }
+                                    p.setSellerReviewCount(count);
+                                }
+                            }
+                        } else {
+                            List<Product> sellerProducts = productsBySeller.get(sellerId);
+                            if (sellerProducts != null) {
+                                for (Product p : sellerProducts) {
+                                    p.setSellerRating(0.0);
+                                    p.setSellerReviewCount(0);
+                                }
+                            }
+                        }
+                        remaining[0]--;
+                        if (remaining[0] == 0) listener.onProducts(products);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.w(TAG, "Failed to load seller data for " + sellerId, e);
+                        List<Product> sellerProducts = productsBySeller.get(sellerId);
+                        if (sellerProducts != null) {
+                            for (Product p : sellerProducts) {
+                                p.setSellerRating(0.0);
+                                p.setSellerReviewCount(0);
+                            }
+                        }
+                        remaining[0]--;
+                        if (remaining[0] == 0) listener.onProducts(products);
+                    });
+        }
     }
 
     private void enrichProductsWithSellerRatings(List<Product> products, ProductListCallback callback) {
@@ -202,7 +317,7 @@ public class ProductRepository {
         }
     }
 
-    // ─── Get Product By ID ────────────────────────────────────────────────────
+    // ─── Get Product By ID (One-time fetch - deprecated, use listener) ───────
 
     public void getProductById(String productId, ProductDetailCallback callback) {
         if (productId == null || productId.isEmpty()) {
@@ -228,6 +343,41 @@ public class ProductRepository {
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "getProductById failed", e);
                     callback.onFailure("Could not load product: " + e.getMessage());
+                });
+    }
+
+    // ─── Listen to Product By ID (Real-time) ─────────────────────────────────
+
+    /**
+     * Attaches a real-time listener to a specific product.
+     * Returns ListenerRegistration so caller can remove it in onStop/onDestroy.
+     */
+    public ListenerRegistration listenToProductById(String productId, ProductDetailListener listener) {
+        if (productId == null || productId.isEmpty()) {
+            listener.onError("Invalid product ID");
+            return null;
+        }
+
+        return firestore.collection(Constants.COLLECTION_PRODUCTS)
+                .document(productId)
+                .addSnapshotListener((documentSnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "listenToProductById error", error);
+                        listener.onError("Could not load product: " + error.getMessage());
+                        return;
+                    }
+                    if (documentSnapshot == null || !documentSnapshot.exists()) {
+                        listener.onError("Product not found");
+                        return;
+                    }
+
+                    try {
+                        Product product = mapDocToProduct(documentSnapshot);
+                        listener.onProduct(product);
+                    } catch (Exception e) {
+                        Log.e(TAG, "mapDocToProduct failed", e);
+                        listener.onError("Error reading product data");
+                    }
                 });
     }
 

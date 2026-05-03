@@ -31,6 +31,7 @@ import com.example.unikart.utils.Constants;
 import com.example.unikart.utils.SessionManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -63,6 +64,7 @@ public class ProductDetailActivity extends AppCompatActivity {
     private OrderRepository orderRepository;
     private SessionManager sessionManager;
     private Product currentProduct;
+    private ListenerRegistration productListener;
 
     // Edit listing launcher
     private final ActivityResultLauncher<Intent> editListingLauncher = registerForActivityResult(
@@ -154,11 +156,17 @@ public class ProductDetailActivity extends AppCompatActivity {
             return;
         }
 
+        // Remove existing listener if any
+        if (productListener != null) {
+            productListener.remove();
+            productListener = null;
+        }
+
         if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
 
-        productRepository.getProductById(productId, new ProductRepository.ProductDetailCallback() {
+        productListener = productRepository.listenToProductById(productId, new ProductRepository.ProductDetailListener() {
             @Override
-            public void onSuccess(Product product) {
+            public void onProduct(Product product) {
                 if (progressBar != null) progressBar.setVisibility(View.GONE);
                 currentProduct = product;
                 displayProduct(product);
@@ -166,13 +174,23 @@ public class ProductDetailActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(String error) {
+            public void onError(String error) {
                 if (progressBar != null) progressBar.setVisibility(View.GONE);
                 Log.e(TAG, "loadProductData failed: " + error);
                 if (tvProductTitle != null) tvProductTitle.setText("Product unavailable");
                 if (tvDescription  != null) tvDescription.setText(error);
             }
         });
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Remove listener to prevent memory leaks
+        if (productListener != null) {
+            productListener.remove();
+            productListener = null;
+        }
     }
 
     private void displayProduct(Product product) {

@@ -39,6 +39,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -73,6 +74,7 @@ public class HomeActivity extends AppCompatActivity {
     private List<Product> filteredProducts = new ArrayList<>();
     private FilterState filterState = new FilterState();
     private boolean isFirstLoad = true;
+    private ListenerRegistration productsListener;
 
     // Android 13+ notification permission
     private final ActivityResultLauncher<String> notifPermissionLauncher =
@@ -500,15 +502,21 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     /**
-     * Load all products from Firestore
+     * Load all products from Firestore with real-time updates
      */
     private void loadProducts() {
+        // Remove existing listener if any
+        if (productsListener != null) {
+            productsListener.remove();
+            productsListener = null;
+        }
+
         showLoading(true);
         tvEmptyState.setVisibility(View.GONE);
 
-        productRepository.getAllProducts(new ProductRepository.ProductListCallback() {
+        productsListener = productRepository.listenToAllProducts(new ProductRepository.ProductListListener() {
             @Override
-            public void onSuccess(List<Product> products) {
+            public void onProducts(List<Product> products) {
                 showLoading(false);
 
                 // Silently purge any leftover Campus Store seed listings
@@ -529,11 +537,11 @@ public class HomeActivity extends AppCompatActivity {
                 allProducts.clear();
                 allProducts.addAll(clean);
                 applyFilters();
-                Log.d(TAG, "Loaded " + clean.size() + " products (purged " + (products.size() - clean.size()) + " seed items)");
+                Log.d(TAG, "Real-time update: " + clean.size() + " products (purged " + (products.size() - clean.size()) + " seed items)");
             }
 
             @Override
-            public void onFailure(String error) {
+            public void onError(String error) {
                 showLoading(false);
                 Log.e(TAG, "loadProducts failed: " + error);
                 if (allProducts.isEmpty()) {
@@ -595,21 +603,19 @@ public class HomeActivity extends AppCompatActivity {
         super.onResume();
         bottomNavigation.setSelectedItemId(R.id.nav_home);
         
-        // Refresh products on resume (except first load)
-        if (!isFirstLoad) {
-            productRepository.getAllProducts(new ProductRepository.ProductListCallback() {
-                @Override
-                public void onSuccess(List<Product> products) {
-                    allProducts.clear();
-                    allProducts.addAll(products);
-                    applyFilters();
-                }
-                @Override public void onFailure(String error) {
-                    Log.w(TAG, "onResume refresh failed: " + error);
-                }
-            });
-        }
+        // Real-time listener handles updates automatically
+        // No need to manually refresh
         isFirstLoad = false;
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Remove listener to prevent memory leaks
+        if (productsListener != null) {
+            productsListener.remove();
+            productsListener = null;
+        }
     }
 
     @Override

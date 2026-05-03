@@ -7,6 +7,7 @@ import com.example.unikart.models.Review;
 import com.example.unikart.utils.Constants;
 import com.example.unikart.utils.NotificationSender;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
@@ -29,6 +30,11 @@ public class OrderRepository {
     public interface OrderListCallback {
         void onSuccess(List<Order> orders);
         void onFailure(String error);
+    }
+
+    public interface OrderListListener {
+        void onOrders(List<Order> orders);
+        void onError(String error);
     }
 
     public OrderRepository() {
@@ -263,7 +269,7 @@ public class OrderRepository {
                 .addOnFailureListener(e -> Log.w(TAG, "sendOrderStatusNotification: could not read order", e));
     }
 
-    // ─── Get Orders as Buyer ──────────────────────────────────────────────────
+    // ─── Get Orders as Buyer (One-time fetch - deprecated, use listener) ─────
 
     public void getOrdersAsBuyer(OrderListCallback callback) {
         String uid = firebaseManager.getCurrentUserId();
@@ -301,7 +307,67 @@ public class OrderRepository {
                 .addOnFailureListener(e -> callback.onFailure("Could not load orders"));
     }
 
-    // ─── Get Orders as Seller ─────────────────────────────────────────────────
+    // ─── Listen to Orders as Buyer (Real-time) ───────────────────────────────
+
+    /**
+     * Attaches a real-time listener to buyer's orders.
+     * Returns ListenerRegistration so caller can remove it in onStop/onDestroy.
+     */
+    public ListenerRegistration listenToOrdersAsBuyer(OrderListListener listener) {
+        String uid = firebaseManager.getCurrentUserId();
+        if (uid == null) {
+            listener.onError("Not logged in");
+            return null;
+        }
+
+        return firestore.collection(Constants.COLLECTION_ORDERS)
+                .whereEqualTo("buyerId", uid)
+                .orderBy("requestedAt", Query.Direction.DESCENDING)
+                .addSnapshotListener((querySnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "listenToOrdersAsBuyer error", error);
+                        // Try fallback without orderBy
+                        listenToOrdersAsBuyerFallback(uid, listener);
+                        return;
+                    }
+                    if (querySnapshot == null) return;
+
+                    List<Order> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
+                        try {
+                            list.add(mapDoc(doc));
+                        } catch (Exception e) {
+                            Log.w(TAG, "Skipping malformed order: " + doc.getId(), e);
+                        }
+                    }
+                    listener.onOrders(list);
+                });
+    }
+
+    private ListenerRegistration listenToOrdersAsBuyerFallback(String uid, OrderListListener listener) {
+        return firestore.collection(Constants.COLLECTION_ORDERS)
+                .whereEqualTo("buyerId", uid)
+                .addSnapshotListener((querySnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "listenToOrdersAsBuyerFallback error", error);
+                        listener.onError("Could not load orders");
+                        return;
+                    }
+                    if (querySnapshot == null) return;
+
+                    List<Order> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
+                        try {
+                            list.add(mapDoc(doc));
+                        } catch (Exception e) {
+                            Log.w(TAG, "Skipping malformed order: " + doc.getId(), e);
+                        }
+                    }
+                    listener.onOrders(list);
+                });
+    }
+
+    // ─── Get Orders as Seller (One-time fetch - deprecated, use listener) ────
 
     public void getOrdersAsSeller(OrderListCallback callback) {
         String uid = firebaseManager.getCurrentUserId();
@@ -336,6 +402,66 @@ public class OrderRepository {
                     callback.onSuccess(list);
                 })
                 .addOnFailureListener(e -> callback.onFailure("Could not load orders"));
+    }
+
+    // ─── Listen to Orders as Seller (Real-time) ──────────────────────────────
+
+    /**
+     * Attaches a real-time listener to seller's orders.
+     * Returns ListenerRegistration so caller can remove it in onStop/onDestroy.
+     */
+    public ListenerRegistration listenToOrdersAsSeller(OrderListListener listener) {
+        String uid = firebaseManager.getCurrentUserId();
+        if (uid == null) {
+            listener.onError("Not logged in");
+            return null;
+        }
+
+        return firestore.collection(Constants.COLLECTION_ORDERS)
+                .whereEqualTo("sellerId", uid)
+                .orderBy("requestedAt", Query.Direction.DESCENDING)
+                .addSnapshotListener((querySnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "listenToOrdersAsSeller error", error);
+                        // Try fallback without orderBy
+                        listenToOrdersAsSellerFallback(uid, listener);
+                        return;
+                    }
+                    if (querySnapshot == null) return;
+
+                    List<Order> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
+                        try {
+                            list.add(mapDoc(doc));
+                        } catch (Exception e) {
+                            Log.w(TAG, "Skipping malformed order: " + doc.getId(), e);
+                        }
+                    }
+                    listener.onOrders(list);
+                });
+    }
+
+    private ListenerRegistration listenToOrdersAsSellerFallback(String uid, OrderListListener listener) {
+        return firestore.collection(Constants.COLLECTION_ORDERS)
+                .whereEqualTo("sellerId", uid)
+                .addSnapshotListener((querySnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "listenToOrdersAsSellerFallback error", error);
+                        listener.onError("Could not load orders");
+                        return;
+                    }
+                    if (querySnapshot == null) return;
+
+                    List<Order> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
+                        try {
+                            list.add(mapDoc(doc));
+                        } catch (Exception e) {
+                            Log.w(TAG, "Skipping malformed order: " + doc.getId(), e);
+                        }
+                    }
+                    listener.onOrders(list);
+                });
     }
 
     // ─── Submit Review ────────────────────────────────────────────────────────

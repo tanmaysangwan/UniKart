@@ -26,6 +26,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -46,6 +47,7 @@ public class OrdersActivity extends AppCompatActivity {
     private OrderAdapter orderAdapter;
     private List<Order> orderList = new ArrayList<>();
     private String currentUserId;
+    private ListenerRegistration ordersListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,12 +119,18 @@ public class OrdersActivity extends AppCompatActivity {
     }
 
     private void loadOrders(int tab) {
+        // Remove existing listener if any
+        if (ordersListener != null) {
+            ordersListener.remove();
+            ordersListener = null;
+        }
+
         progressBar.setVisibility(View.VISIBLE);
         tvEmpty.setVisibility(View.GONE);
 
-        OrderRepository.OrderListCallback cb = new OrderRepository.OrderListCallback() {
+        OrderRepository.OrderListListener listener = new OrderRepository.OrderListListener() {
             @Override
-            public void onSuccess(List<Order> orders) {
+            public void onOrders(List<Order> orders) {
                 progressBar.setVisibility(View.GONE);
                 orderList.clear();
                 
@@ -134,7 +142,7 @@ public class OrdersActivity extends AppCompatActivity {
                 tvEmpty.setVisibility(orders.isEmpty() ? View.VISIBLE : View.GONE);
             }
             @Override
-            public void onFailure(String error) {
+            public void onError(String error) {
                 progressBar.setVisibility(View.GONE);
                 Log.e(TAG, "loadOrders failed: " + error);
                 tvEmpty.setVisibility(View.VISIBLE);
@@ -142,8 +150,22 @@ public class OrdersActivity extends AppCompatActivity {
             }
         };
 
-        if (tab == 0) orderRepository.getOrdersAsBuyer(cb);
-        else          orderRepository.getOrdersAsSeller(cb);
+        // Attach real-time listener
+        if (tab == 0) {
+            ordersListener = orderRepository.listenToOrdersAsBuyer(listener);
+        } else {
+            ordersListener = orderRepository.listenToOrdersAsSeller(listener);
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Remove listener to prevent memory leaks
+        if (ordersListener != null) {
+            ordersListener.remove();
+            ordersListener = null;
+        }
     }
 
     // ── Inner Adapter ─────────────────────────────────────────────────────────
