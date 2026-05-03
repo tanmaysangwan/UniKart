@@ -103,9 +103,15 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                                 ivAvatar.setVisibility(View.VISIBLE);
                                 Glide.with(context)
                                         .load(avatarUrl)
-                                        .placeholder(R.drawable.bg_avatar_placeholder)
+                                        .placeholder(R.drawable.ic_user_placeholder)
+                                        .error(R.drawable.ic_user_placeholder)
                                         .circleCrop()
                                         .into(ivAvatar);
+                            } else {
+                                // No profile picture - show user icon
+                                tvAvatarInitial.setVisibility(View.GONE);
+                                ivAvatar.setVisibility(View.VISIBLE);
+                                ivAvatar.setImageResource(R.drawable.ic_user_placeholder);
                             }
                         });
             }

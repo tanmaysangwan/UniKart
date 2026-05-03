@@ -149,9 +149,15 @@ public class ChatActivity extends AppCompatActivity {
                             if (tvHeaderInitial != null) tvHeaderInitial.setVisibility(View.GONE);
                             Glide.with(this)
                                     .load(avatarUrl)
-                                    .placeholder(R.drawable.bg_avatar_placeholder)
+                                    .placeholder(R.drawable.ic_user_placeholder)
+                                    .error(R.drawable.ic_user_placeholder)
                                     .circleCrop()
                                     .into(ivHeaderAvatar);
+                            ivHeaderAvatar.setVisibility(View.VISIBLE);
+                        } else {
+                            // No profile picture - show user icon instead of initial
+                            if (tvHeaderInitial != null) tvHeaderInitial.setVisibility(View.GONE);
+                            ivHeaderAvatar.setImageResource(R.drawable.ic_user_placeholder);
                             ivHeaderAvatar.setVisibility(View.VISIBLE);
                         }
                     })
@@ -202,6 +208,9 @@ public class ChatActivity extends AppCompatActivity {
             chatId = existingChatId;
             if (progressBar != null) progressBar.setVisibility(View.GONE);
             Log.d(TAG, "Using existing chat: " + chatId);
+            
+            // Load chat details (including product title) from Firestore
+            loadChatDetails(chatId);
             listenToMessages();
             return;
         }
@@ -214,6 +223,12 @@ public class ChatActivity extends AppCompatActivity {
                         if (progressBar != null) progressBar.setVisibility(View.GONE);
                         chatId = id;
                         Log.d(TAG, "Chat ready: " + chatId);
+                        
+                        // If product title wasn't passed, load it from chat doc
+                        if ((productTitle == null || productTitle.isEmpty()) && chatId != null) {
+                            loadChatDetails(chatId);
+                        }
+                        
                         listenToMessages();
                     }
 
@@ -224,6 +239,36 @@ public class ChatActivity extends AppCompatActivity {
                         tvChatTitle.setText(sellerName + " (offline)");
                     }
                 });
+    }
+    
+    /**
+     * Loads chat details from Firestore to populate missing information like product title
+     */
+    private void loadChatDetails(String chatId) {
+        FirebaseFirestore.getInstance()
+                .collection(Constants.COLLECTION_CHATS)
+                .document(chatId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        // Update product title if not already set
+                        String chatProductTitle = doc.getString("productTitle");
+                        if (chatProductTitle != null && !chatProductTitle.isEmpty()) {
+                            productTitle = chatProductTitle;
+                            TextView tvChatSubtitle = findViewById(R.id.tvChatSubtitle);
+                            if (tvChatSubtitle != null) {
+                                tvChatSubtitle.setText(productTitle);
+                                tvChatSubtitle.setVisibility(View.VISIBLE);
+                            }
+                        }
+                        
+                        // Update product ID if not already set
+                        if (productId == null || productId.isEmpty()) {
+                            productId = doc.getString("productId");
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> Log.w(TAG, "Failed to load chat details", e));
     }
 
     private void listenToMessages() {

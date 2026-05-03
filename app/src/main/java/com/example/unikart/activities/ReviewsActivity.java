@@ -3,12 +3,16 @@ package com.example.unikart.activities;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RatingBar;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -17,7 +21,6 @@ import com.example.unikart.adapters.ReviewAdapter;
 import com.example.unikart.firebase.OrderRepository;
 import com.example.unikart.models.Review;
 import com.example.unikart.utils.SessionManager;
-import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,8 +30,10 @@ public class ReviewsActivity extends AppCompatActivity {
 
     private static final String TAG = "ReviewsActivity";
 
-    private MaterialToolbar toolbar;
+    private View statusBarSpacer;
+    private ImageButton btnBack;
     private TextView tvAverageRating;
+    private RatingBar ratingBarAverage;
     private TextView tvTotalReviews;
     private RecyclerView rvReviews;
     private ProgressBar progressBar;
@@ -48,27 +53,34 @@ public class ReviewsActivity extends AppCompatActivity {
         orderRepository = new OrderRepository();
 
         initViews();
-        setupToolbar();
+        setupWindowInsets();
+        setupBackButton();
         setupRecyclerView();
         loadReviews();
     }
 
     private void initViews() {
-        toolbar = findViewById(R.id.toolbar);
+        statusBarSpacer = findViewById(R.id.statusBarSpacer);
+        btnBack = findViewById(R.id.btnBack);
         tvAverageRating = findViewById(R.id.tvAverageRating);
+        ratingBarAverage = findViewById(R.id.ratingBarAverage);
         tvTotalReviews = findViewById(R.id.tvTotalReviews);
         rvReviews = findViewById(R.id.rvReviews);
         progressBar = findViewById(R.id.progressBar);
         emptyState = findViewById(R.id.emptyState);
     }
 
-    private void setupToolbar() {
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Reviews & Ratings");
-        }
-        toolbar.setNavigationOnClickListener(v -> finish());
+    private void setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.appBarLayout), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            statusBarSpacer.getLayoutParams().height = systemBars.top;
+            statusBarSpacer.requestLayout();
+            return insets;
+        });
+    }
+
+    private void setupBackButton() {
+        btnBack.setOnClickListener(v -> finish());
     }
 
     private void setupRecyclerView() {
@@ -111,6 +123,7 @@ public class ReviewsActivity extends AppCompatActivity {
                     float avgRating = totalRating / reviews.size();
 
                     tvAverageRating.setText(String.format(Locale.getDefault(), "%.1f", avgRating));
+                    ratingBarAverage.setRating(avgRating);
                     tvTotalReviews.setText(String.format(Locale.getDefault(), "%d Reviews", reviews.size()));
 
                     rvReviews.setVisibility(View.VISIBLE);
@@ -136,6 +149,7 @@ public class ReviewsActivity extends AppCompatActivity {
         
         // Set default values
         tvAverageRating.setText("0.0");
+        ratingBarAverage.setRating(0);
         tvTotalReviews.setText("0 Reviews");
     }
 }

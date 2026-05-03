@@ -3,6 +3,7 @@ package com.example.unikart;
 import android.app.Application;
 import android.util.Log;
 
+import com.example.unikart.utils.AppLifecycleTracker;
 import com.example.unikart.utils.FCMTokenManager;
 import com.example.unikart.utils.NotificationHelper;
 import com.example.unikart.utils.NotificationSender;
@@ -21,6 +22,9 @@ public class UniKartApp extends Application {
         NotificationHelper.createChannels(this);
         NotificationSender.init(this);
         refreshFCMTokenIfLoggedIn();
+        
+        // Register lifecycle tracker for in-app notifications
+        registerActivityLifecycleCallbacks(new AppLifecycleTracker());
     }
 
     private void refreshFCMTokenIfLoggedIn() {

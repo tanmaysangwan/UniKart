@@ -99,7 +99,8 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
             // Stored URL present — load it directly
             Glide.with(context)
                     .load(storedPic)
-                    .placeholder(R.drawable.bg_avatar_placeholder)
+                    .placeholder(R.drawable.ic_user_placeholder)
+                    .error(R.drawable.ic_user_placeholder)
                     .circleCrop()
                     .into(holder.ivReviewerAvatar);
         } else if (reviewerId != null && !reviewerId.isEmpty()) {
@@ -113,11 +114,22 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
                         if (liveUrl != null && !liveUrl.isEmpty()) {
                             Glide.with(context)
                                     .load(liveUrl)
-                                    .placeholder(R.drawable.bg_avatar_placeholder)
+                                    .placeholder(R.drawable.ic_user_placeholder)
+                                    .error(R.drawable.ic_user_placeholder)
                                     .circleCrop()
                                     .into(holder.ivReviewerAvatar);
+                        } else {
+                            // No profile picture - show user icon
+                            holder.ivReviewerAvatar.setImageResource(R.drawable.ic_user_placeholder);
                         }
+                    })
+                    .addOnFailureListener(e -> {
+                        // On error, show user icon
+                        holder.ivReviewerAvatar.setImageResource(R.drawable.ic_user_placeholder);
                     });
+        } else {
+            // No reviewer info - show user icon
+            holder.ivReviewerAvatar.setImageResource(R.drawable.ic_user_placeholder);
         }
     }
 

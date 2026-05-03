@@ -1,11 +1,14 @@
 package com.example.unikart.services;
 
+import android.app.Activity;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.example.unikart.utils.AppLifecycleTracker;
 import com.example.unikart.utils.Constants;
 import com.example.unikart.utils.FCMTokenManager;
+import com.example.unikart.utils.InAppNotificationManager;
 import com.example.unikart.utils.NotificationHelper;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessagingService;
@@ -16,7 +19,10 @@ import java.util.Map;
 /**
  * Handles incoming FCM messages and token refreshes.
  *
- * When the app is in the FOREGROUND or receives a data-only message:
+ * When the app is in the FOREGROUND:
+ *   Shows an in-app notification banner at the top of the screen
+ *
+ * When the app is in the BACKGROUND or receives a data-only message:
  *   onMessageReceived() fires → we build and show the notification ourselves
  *   with a PendingIntent that goes directly to ChatActivity / OrdersActivity.
  *
@@ -71,7 +77,7 @@ public class UniKartFCMService extends FirebaseMessagingService {
             String title = remoteMessage.getNotification().getTitle();
             String body  = remoteMessage.getNotification().getBody();
             if (title != null && body != null) {
-                NotificationHelper.showOrderNotification(this, title, body, false);
+                showNotification(title, body, false, null, null);
             }
         }
     }
@@ -94,7 +100,7 @@ public class UniKartFCMService extends FirebaseMessagingService {
             if (notification.getBody()  != null) preview = notification.getBody();
         }
 
-        NotificationHelper.showChatNotification(this, title, preview, chatId);
+        showNotification(title, preview, false, chatId, senderName);
     }
 
     private void handleOrderMessage(Map<String, String> data,
@@ -109,7 +115,40 @@ public class UniKartFCMService extends FirebaseMessagingService {
             if (notification.getBody()  != null) body  = notification.getBody();
         }
 
-        NotificationHelper.showOrderNotification(this, title, body, openSellerTab);
+        showNotification(title, body, openSellerTab, null, null);
+    }
+
+    /**
+     * Shows either an in-app banner (if app is in foreground) or a system notification
+     */
+    private void showNotification(String title, String body, boolean openSellerTab, 
+                                 String chatId, String senderName) {
+        // Check if app is in foreground AND we have a valid activity
+        boolean showInApp = false;
+        if (AppLifecycleTracker.isAppInForeground()) {
+            Activity currentActivity = AppLifecycleTracker.getCurrentActivity();
+            if (currentActivity != null && !currentActivity.isFinishing()) {
+                // Show in-app notification banner
+                if (chatId != null && !chatId.isEmpty()) {
+                    InAppNotificationManager.showChatNotification(
+                            currentActivity, title, body, chatId);
+                } else {
+                    InAppNotificationManager.showOrderNotification(
+                            currentActivity, title, body, openSellerTab);
+                }
+                showInApp = true;
+            }
+        }
+
+        // ALWAYS show system notification when app is not in foreground
+        // This ensures notifications work when app is background/killed
+        if (!showInApp) {
+            if (chatId != null && !chatId.isEmpty()) {
+                NotificationHelper.showChatNotification(this, title, body, chatId);
+            } else {
+                NotificationHelper.showOrderNotification(this, title, body, openSellerTab);
+            }
+        }
     }
 
     private static String safeGet(Map<String, String> map, String key, String fallback) {

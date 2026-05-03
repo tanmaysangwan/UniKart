@@ -102,50 +102,30 @@ public class ProductRepository {
     // ─── Get All Products ─────────────────────────────────────────────────────
 
     public void getAllProducts(ProductListCallback callback) {
+        // Fetch all products and filter available ones in code
+        // This handles both "available" and legacy "isAvailable" fields
         firestore.collection(Constants.COLLECTION_PRODUCTS)
-                .whereEqualTo("isAvailable", true)
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     List<Product> products = new ArrayList<>();
                     for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
                         try {
-                            products.add(mapDocToProduct(doc));
+                            Product product = mapDocToProduct(doc);
+                            // Only include available products
+                            if (product.isAvailable()) {
+                                products.add(product);
+                            }
                         } catch (Exception e) {
                             Log.w(TAG, "Skipping malformed product doc: " + doc.getId(), e);
                         }
                     }
-                    Log.d(TAG, "Loaded " + products.size() + " products");
+                    Log.d(TAG, "Loaded " + products.size() + " available products");
                     enrichProductsWithSellerRatings(products, callback);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "getAllProducts failed", e);
-                    if (e.getMessage() != null && e.getMessage().contains("index")) {
-                        getAllProductsFallback(callback);
-                    } else {
-                        callback.onFailure("Could not load products: " + e.getMessage());
-                    }
-                });
-    }
-
-    private void getAllProductsFallback(ProductListCallback callback) {
-        firestore.collection(Constants.COLLECTION_PRODUCTS)
-                .whereEqualTo("isAvailable", true)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Product> products = new ArrayList<>();
-                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
-                        try {
-                            products.add(mapDocToProduct(doc));
-                        } catch (Exception e) {
-                            Log.w(TAG, "Skipping doc: " + doc.getId(), e);
-                        }
-                    }
-                    enrichProductsWithSellerRatings(products, callback);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "getAllProductsFallback failed", e);
-                    callback.onFailure("Could not load products");
+                    callback.onFailure("Could not load products: " + e.getMessage());
                 });
     }
 
@@ -281,6 +261,10 @@ public class ProductRepository {
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
+    /**
+     * Maps Firestore document to Product model.
+     * Handles backward compatibility for "isAvailable" vs "available" field.
+     */
     private Product mapDocToProduct(com.google.firebase.firestore.DocumentSnapshot doc) {
         Product p = new Product();
         p.setId(safeString(doc, "productId", doc.getId()));
@@ -302,8 +286,13 @@ public class ProductRepository {
         Long createdAt = doc.getLong("createdAt");
         p.setTimestamp(createdAt != null ? createdAt : 0L);
         
+        // Handle both "available" (current) and "isAvailable" (legacy) fields
         Boolean available = doc.getBoolean("available");
-        p.setAvailable(available != null ? available : true); // default true for old products
+        if (available == null) {
+            available = doc.getBoolean("isAvailable");
+        }
+        // Default to true for old products without any availability field
+        p.setAvailable(available != null ? available : true);
 
         return p;
     }

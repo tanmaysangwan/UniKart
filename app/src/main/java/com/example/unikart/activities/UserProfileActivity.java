@@ -145,9 +145,12 @@ public class UserProfileActivity extends AppCompatActivity {
         if (preloadAvatar != null && !preloadAvatar.isEmpty()) {
             Glide.with(this)
                     .load(preloadAvatar)
-                    .placeholder(R.drawable.bg_avatar_placeholder)
+                    .placeholder(R.drawable.ic_user_placeholder)
+                    .error(R.drawable.ic_user_placeholder)
                     .circleCrop()
                     .into(ivProfileAvatar);
+        } else {
+            ivProfileAvatar.setImageResource(R.drawable.ic_user_placeholder);
         }
 
         // Reviews RecyclerView
@@ -191,12 +194,17 @@ public class UserProfileActivity extends AppCompatActivity {
                     }
 
                     // Profile picture
-                    if (avatarUrl != null && !avatarUrl.isEmpty()) {
-                        Glide.with(this)
-                                .load(avatarUrl)
-                                .placeholder(R.drawable.bg_avatar_placeholder)
-                                .circleCrop()
-                                .into(ivProfileAvatar);
+                    if (ivProfileAvatar != null) {
+                        if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                            Glide.with(this)
+                                    .load(avatarUrl)
+                                    .placeholder(R.drawable.ic_user_placeholder)
+                                    .error(R.drawable.ic_user_placeholder)
+                                    .circleCrop()
+                                    .into(ivProfileAvatar);
+                        } else {
+                            ivProfileAvatar.setImageResource(R.drawable.ic_user_placeholder);
+                        }
                     }
                 })
                 .addOnFailureListener(e -> Log.e(TAG, "loadUserData failed", e));

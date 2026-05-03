@@ -184,7 +184,8 @@ public class EditProfileActivity extends AppCompatActivity {
     private void displaySelectedImage(Uri imageUri) {
         Glide.with(this)
                 .load(imageUri)
-                .placeholder(R.drawable.bg_avatar_placeholder)
+                .placeholder(R.drawable.ic_user_placeholder)
+                .error(R.drawable.ic_user_placeholder)
                 .circleCrop()
                 .into(ivProfilePhoto);
     }
@@ -219,12 +220,17 @@ public class EditProfileActivity extends AppCompatActivity {
                         if (etBio != null) etBio.setText(bio);
 
                         // Load profile photo
-                        if (currentProfilePictureUrl != null && !currentProfilePictureUrl.isEmpty()) {
-                            Glide.with(this)
-                                    .load(currentProfilePictureUrl)
-                                    .placeholder(R.drawable.bg_avatar_placeholder)
-                                    .circleCrop()
-                                    .into(ivProfilePhoto);
+                        if (ivProfilePhoto != null) {
+                            if (currentProfilePictureUrl != null && !currentProfilePictureUrl.isEmpty()) {
+                                Glide.with(this)
+                                        .load(currentProfilePictureUrl)
+                                        .placeholder(R.drawable.ic_user_placeholder)
+                                        .error(R.drawable.ic_user_placeholder)
+                                        .circleCrop()
+                                        .into(ivProfilePhoto);
+                            } else {
+                                ivProfilePhoto.setImageResource(R.drawable.ic_user_placeholder);
+                            }
                         }
                     }
                 })

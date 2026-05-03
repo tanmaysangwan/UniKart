@@ -293,12 +293,18 @@ public class ProfileActivity extends AppCompatActivity {
                         if (name != null) sessionManager.saveUserName(name);
                         
                         // Load profile picture
-                        if (profilePicUrl != null && !profilePicUrl.isEmpty() && ivProfileAvatar != null) {
-                            Glide.with(this)
-                                    .load(profilePicUrl)
-                                    .placeholder(R.drawable.bg_avatar_placeholder)
-                                    .circleCrop()
-                                    .into(ivProfileAvatar);
+                        if (ivProfileAvatar != null) {
+                            if (profilePicUrl != null && !profilePicUrl.isEmpty()) {
+                                Glide.with(this)
+                                        .load(profilePicUrl)
+                                        .placeholder(R.drawable.ic_user_placeholder)
+                                        .error(R.drawable.ic_user_placeholder)
+                                        .circleCrop()
+                                        .into(ivProfileAvatar);
+                            } else {
+                                // No profile picture - show user icon
+                                ivProfileAvatar.setImageResource(R.drawable.ic_user_placeholder);
+                            }
                         }
                     }
                 })

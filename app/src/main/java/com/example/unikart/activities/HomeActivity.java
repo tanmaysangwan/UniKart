@@ -167,13 +167,21 @@ public class HomeActivity extends AppCompatActivity {
                         if (profilePicUrl != null && !profilePicUrl.isEmpty()) {
                             Glide.with(this)
                                     .load(profilePicUrl)
-                                    .placeholder(R.drawable.bg_avatar_placeholder)
+                                    .placeholder(R.drawable.ic_user_placeholder)
+                                    .error(R.drawable.ic_user_placeholder)
                                     .circleCrop()
                                     .into(ivAvatar);
+                        } else {
+                            ivAvatar.setImageResource(R.drawable.ic_user_placeholder);
                         }
+                    } else {
+                        ivAvatar.setImageResource(R.drawable.ic_user_placeholder);
                     }
                 })
-                .addOnFailureListener(e -> Log.w(TAG, "Failed to load profile picture", e));
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "Failed to load profile picture", e);
+                    ivAvatar.setImageResource(R.drawable.ic_user_placeholder);
+                });
     }
 
     /**
