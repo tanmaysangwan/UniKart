@@ -251,7 +251,6 @@ Firestore Database:
                 └── sentAt: timestamp
 ```
 
----
 
 ## 🚀 Getting Started
 
@@ -522,7 +521,7 @@ REQUESTED → ACCEPTED → HANDED_OVER → RETURN_PENDING → RETURNED
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Firebase Issues
 
