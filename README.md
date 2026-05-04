@@ -139,8 +139,7 @@ app/src/main/java/com/example/unikart/
 │   ├── AuthRepository.java            # User authentication
 │   ├── ProductRepository.java         # Product CRUD operations
 │   ├── OrderRepository.java           # Order & review management
-│   ├── ChatRepository.java            # Real-time messaging
-│   └── AdminRepository.java           # Admin utilities
+│   └── ChatRepository.java            # Real-time messaging
 │
 ├── models/              # Data models
 │   ├── Product.java                   # Product entity
@@ -579,7 +578,6 @@ REQUESTED → ACCEPTED → HANDED_OVER → RETURN_PENDING → RETURNED
 - **Location Services** — No GPS-based filtering (campus-wide only)
 - **Multi-language** — English only
 - **Web Version** — Android app only (no web interface)
-- **Admin Panel** — No dedicated admin dashboard
 
 ---
 
@@ -595,7 +593,6 @@ REQUESTED → ACCEPTED → HANDED_OVER → RETURN_PENDING → RETURNED
 - [ ] **Social Sharing** — Share listings on social media
 - [ ] **Dark Mode** — Eye-friendly night theme
 - [ ] **Multi-language** — Support for regional languages
-- [ ] **Admin Dashboard** — Web-based moderation tools
 - [ ] **Analytics** — User behavior insights
 
 ---
