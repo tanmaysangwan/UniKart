@@ -100,7 +100,7 @@ public class ReviewsActivity extends AppCompatActivity {
         rvReviews.setVisibility(View.GONE);
         emptyState.setVisibility(View.GONE);
 
-        orderRepository.getReviewsForUser(userId, new OrderRepository.ReviewListCallback() {
+        orderRepository.getAllReviewsForUser(userId, new OrderRepository.ReviewListCallback() {
             @Override
             public void onSuccess(List<Review> reviews) {
                 runOnUiThread(() -> {

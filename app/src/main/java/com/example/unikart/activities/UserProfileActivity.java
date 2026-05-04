@@ -245,7 +245,7 @@ public class UserProfileActivity extends AppCompatActivity {
         rvReviews.setVisibility(View.GONE);
         emptyState.setVisibility(View.GONE);
 
-        orderRepository.getReviewsForUser(targetUserId, new OrderRepository.ReviewListCallback() {
+        orderRepository.getAllReviewsForUser(targetUserId, new OrderRepository.ReviewListCallback() {
             @Override
             public void onSuccess(List<Review> reviews) {
                 runOnUiThread(() -> {

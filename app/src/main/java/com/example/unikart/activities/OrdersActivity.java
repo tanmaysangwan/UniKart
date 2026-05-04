@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RatingBar;
 import android.widget.TextView;
@@ -192,6 +193,8 @@ public class OrdersActivity extends AppCompatActivity {
         class OrderVH extends RecyclerView.ViewHolder {
             TextView tvTitle, tvStatus, tvPrice, tvOtherParty, tvDate, tvType;
             MaterialButton btnAction;
+            LinearLayout llReviewButtons;
+            MaterialButton btnReviewProduct, btnReviewSeller;
 
             OrderVH(@NonNull View v) {
                 super(v);
@@ -202,6 +205,9 @@ public class OrdersActivity extends AppCompatActivity {
                 tvDate       = v.findViewById(R.id.tvOrderDate);
                 tvType       = v.findViewById(R.id.tvOrderType);
                 btnAction    = v.findViewById(R.id.btnOrderAction);
+                llReviewButtons = v.findViewById(R.id.llReviewButtons);
+                btnReviewProduct = v.findViewById(R.id.btnReviewProduct);
+                btnReviewSeller = v.findViewById(R.id.btnReviewSeller);
             }
 
             void bind(Order order) {
@@ -240,38 +246,97 @@ public class OrdersActivity extends AppCompatActivity {
                 }
                 tvStatus.setTextColor(color);
 
-                // Action button
-                String action = getActionLabel(order, isBuyer);
-                if (action != null) {
-                    btnAction.setVisibility(View.VISIBLE);
-                    btnAction.setText(action);
-                    btnAction.setEnabled(true);
-                    btnAction.setAlpha(1f);
-                    btnAction.setOnClickListener(v -> handleAction(order, isBuyer));
+                // Check if order is finished (completed or returned)
+                boolean isFinished = Constants.ORDER_STATUS_COMPLETED.equals(order.getStatus())
+                        || Constants.ORDER_STATUS_RETURNED.equals(order.getStatus());
 
-                    // For completed/returned orders, check if already reviewed
-                    boolean isFinished = Constants.ORDER_STATUS_COMPLETED.equals(order.getStatus())
-                            || Constants.ORDER_STATUS_RETURNED.equals(order.getStatus());
-                    if (isFinished) {
-                        btnAction.setEnabled(false); // disable while checking
-                        orderRepository.hasReviewedOrder(order.getOrderId(), currentUserId,
-                                hasReviewed -> {
-                                    if (hasReviewed) {
-                                        btnAction.setText("Reviewed ✓");
-                                        btnAction.setEnabled(false);
-                                        btnAction.setAlpha(0.5f);
-                                        btnAction.setOnClickListener(null);
-                                    } else {
-                                        btnAction.setText("Leave Review");
-                                        btnAction.setEnabled(true);
-                                        btnAction.setAlpha(1f);
-                                        btnAction.setOnClickListener(v -> handleAction(order, isBuyer));
-                                    }
-                                });
-                    }
-                } else {
+                // Handle review buttons for finished orders
+                if (isFinished && isBuyer) {
+                    // Buyer sees two review buttons: Rate Product and Rate Seller
                     btnAction.setVisibility(View.GONE);
+                    llReviewButtons.setVisibility(View.VISIBLE);
+                    setupBuyerReviewButtons(order);
+                } else if (isFinished && !isBuyer) {
+                    // Seller sees one review button: Rate Buyer
+                    llReviewButtons.setVisibility(View.GONE);
+                    btnAction.setVisibility(View.VISIBLE);
+                    setupSellerReviewButton(order);
+                } else {
+                    // Not finished - show regular action button
+                    llReviewButtons.setVisibility(View.GONE);
+                    String action = getActionLabel(order, isBuyer);
+                    if (action != null) {
+                        btnAction.setVisibility(View.VISIBLE);
+                        btnAction.setText(action);
+                        btnAction.setEnabled(true);
+                        btnAction.setAlpha(1f);
+                        btnAction.setOnClickListener(v -> handleAction(order, isBuyer));
+                    } else {
+                        btnAction.setVisibility(View.GONE);
+                    }
                 }
+            }
+
+            private void setupBuyerReviewButtons(Order order) {
+                // Check if product review exists
+                orderRepository.hasReviewedOrderByType(order.getOrderId(), currentUserId, 
+                        Constants.REVIEW_TYPE_PRODUCT, hasReviewedProduct -> {
+                    runOnUiThread(() -> {
+                        if (hasReviewedProduct) {
+                            btnReviewProduct.setText("✓ Rated");
+                            btnReviewProduct.setEnabled(false);
+                            btnReviewProduct.setAlpha(0.5f);
+                            btnReviewProduct.setOnClickListener(null);
+                        } else {
+                            btnReviewProduct.setText("Rate Product");
+                            btnReviewProduct.setEnabled(true);
+                            btnReviewProduct.setAlpha(1f);
+                            btnReviewProduct.setOnClickListener(v -> 
+                                showReviewDialog(order, Constants.REVIEW_TYPE_PRODUCT, order.getProductId()));
+                        }
+                    });
+                });
+
+                // Check if seller review exists
+                orderRepository.hasReviewedOrderByType(order.getOrderId(), currentUserId, 
+                        Constants.REVIEW_TYPE_SELLER, hasReviewedSeller -> {
+                    runOnUiThread(() -> {
+                        if (hasReviewedSeller) {
+                            btnReviewSeller.setText("✓ Rated");
+                            btnReviewSeller.setEnabled(false);
+                            btnReviewSeller.setAlpha(0.5f);
+                            btnReviewSeller.setOnClickListener(null);
+                        } else {
+                            btnReviewSeller.setText("Rate Seller");
+                            btnReviewSeller.setEnabled(true);
+                            btnReviewSeller.setAlpha(1f);
+                            btnReviewSeller.setOnClickListener(v -> 
+                                showReviewDialog(order, Constants.REVIEW_TYPE_SELLER, order.getSellerId()));
+                        }
+                    });
+                });
+            }
+
+            private void setupSellerReviewButton(Order order) {
+                btnAction.setEnabled(false); // disable while checking
+                orderRepository.hasReviewedOrderByType(order.getOrderId(), currentUserId, 
+                        Constants.REVIEW_TYPE_BUYER, hasReviewedBuyer -> {
+                    runOnUiThread(() -> {
+                        if (hasReviewedBuyer) {
+                            btnAction.setText("Reviewed ✓");
+                            btnAction.setEnabled(false);
+                            btnAction.setAlpha(0.5f);
+                            btnAction.setOnClickListener(null);
+                        } else {
+                            btnAction.setText("Rate Buyer");
+                            btnAction.setEnabled(true);
+                            btnAction.setAlpha(1f);
+                            btnAction.setOnClickListener(v -> 
+                                showReviewDialog(order, Constants.REVIEW_TYPE_BUYER, order.getBuyerId()));
+                        }
+                        btnAction.setVisibility(View.VISIBLE);
+                    });
+                });
             }
 
             private String getActionLabel(Order order, boolean isBuyer) {
@@ -288,9 +353,7 @@ public class OrdersActivity extends AppCompatActivity {
                         }
                     case Constants.ORDER_STATUS_RETURN_PENDING:
                         return isBuyer ? null : "Confirm Return";
-                    case Constants.ORDER_STATUS_COMPLETED:
-                    case Constants.ORDER_STATUS_RETURNED:
-                        return "Leave Review";
+                    // Completed/Returned are handled by review buttons, not here
                     default:
                         return null;
                 }
@@ -314,10 +377,7 @@ public class OrdersActivity extends AppCompatActivity {
                     case Constants.ORDER_STATUS_RETURN_PENDING:
                         if (!isBuyer) updateStatus(order, Constants.ORDER_STATUS_RETURNED);
                         break;
-                    case Constants.ORDER_STATUS_COMPLETED:
-                    case Constants.ORDER_STATUS_RETURNED:
-                        showReviewDialog(order, isBuyer);
-                        break;
+                    // Reviews are handled by separate buttons now
                 }
             }
 
@@ -352,32 +412,44 @@ public class OrdersActivity extends AppCompatActivity {
                         });
             }
 
-            private void showReviewDialog(Order order, boolean isBuyer) {
+            private void showReviewDialog(Order order, String reviewType, String revieweeId) {
                 View v = LayoutInflater.from(OrdersActivity.this)
                         .inflate(R.layout.dialog_review, null);
                 RatingBar ratingBar = v.findViewById(R.id.ratingBar);
                 TextView etComment  = v.findViewById(R.id.etComment);
 
-                String revieweeId = isBuyer ? order.getSellerId() : order.getBuyerId();
+                // Determine dialog title based on review type
+                String dialogTitle;
+                if (Constants.REVIEW_TYPE_PRODUCT.equals(reviewType)) {
+                    dialogTitle = "Rate Product";
+                } else if (Constants.REVIEW_TYPE_SELLER.equals(reviewType)) {
+                    dialogTitle = "Rate Seller";
+                } else {
+                    dialogTitle = "Rate Buyer";
+                }
 
                 new AlertDialog.Builder(OrdersActivity.this)
-                        .setTitle("Leave a Review")
+                        .setTitle(dialogTitle)
                         .setView(v)
                         .setPositiveButton("Submit", (d, w) -> {
                             float rating = ratingBar.getRating();
+                            if (rating == 0) {
+                                Snackbar.make(rvOrders, "Please select a rating", Snackbar.LENGTH_SHORT).show();
+                                return;
+                            }
                             String comment = etComment.getText() != null
                                     ? etComment.getText().toString().trim() : "";
                             orderRepository.submitReview(
                                     order.getOrderId(), order.getProductId(),
-                                    revieweeId, rating, comment,
+                                    revieweeId, rating, comment, reviewType,
                                     new OrderRepository.OrderCallback() {
                                         @Override public void onSuccess(String msg) {
                                             Snackbar.make(rvOrders, "Review submitted!", Snackbar.LENGTH_SHORT).show();
-                                            // Immediately mark button as reviewed
-                                            btnAction.setText("Reviewed ✓");
-                                            btnAction.setEnabled(false);
-                                            btnAction.setAlpha(0.5f);
-                                            btnAction.setOnClickListener(null);
+                                            // Refresh the item to update button states
+                                            int pos = getAdapterPosition();
+                                            if (pos != RecyclerView.NO_POSITION) {
+                                                notifyItemChanged(pos);
+                                            }
                                         }
                                         @Override public void onFailure(String err) {
                                             Snackbar.make(rvOrders, "Failed: " + err, Snackbar.LENGTH_SHORT).show();

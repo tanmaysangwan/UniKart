@@ -26,6 +26,11 @@ public class Constants {
     public static final String ORDER_STATUS_RETURN_PENDING = "RETURN_PENDING";
     public static final String ORDER_STATUS_RETURNED       = "RETURNED";
 
+    // Review Types
+    public static final String REVIEW_TYPE_PRODUCT = "PRODUCT";
+    public static final String REVIEW_TYPE_SELLER  = "SELLER";
+    public static final String REVIEW_TYPE_BUYER   = "BUYER";
+
     // Product Categories — single source of truth used everywhere
     public static final String CATEGORY_BOOKS        = "Books";
     public static final String CATEGORY_ELECTRONICS  = "Electronics";

@@ -9,6 +9,7 @@ public class Review {
     private String reviewerName;
     private String reviewerProfilePic; // Added for display
     private String revieweeId;         // person being reviewed
+    private String reviewType;         // PRODUCT or PERSON
     private float rating;              // 1-5
     private String comment;
     private long timestamp;
@@ -51,4 +52,7 @@ public class Review {
 
     public String getTransactionType()      { return transactionType != null ? transactionType : ""; }
     public void setTransactionType(String v) { this.transactionType = v; }
+
+    public String getReviewType()           { return reviewType != null ? reviewType : ""; }
+    public void setReviewType(String v)     { this.reviewType = v; }
 }

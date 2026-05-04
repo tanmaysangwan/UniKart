@@ -122,6 +122,23 @@
 
             </LinearLayout>
 
+            <!-- Review Type Badge (Buyer/Seller) -->
+            <TextView
+                android:id="@+id/tvReviewType"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="As Seller"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#1565C0"
+                android:background="@drawable/bg_icon_container"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:visibility="gone" />
+
             <!-- Date -->
             <TextView
                 android:id="@+id/tvDate"

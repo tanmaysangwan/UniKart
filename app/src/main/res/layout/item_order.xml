@@ -106,6 +106,37 @@
             android:layout_marginTop="12dp"
             android:visibility="gone"/>
 
+        <!-- Review buttons container (for buyers to review product and seller separately) -->
+        <LinearLayout
+            android:id="@+id/llReviewButtons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp"
+            android:visibility="gone">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnReviewProduct"
+                style="@style/BtnPrimary"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="40dp"
+                android:text="Rate Product"
+                android:textSize="12sp"
+                android:layout_marginEnd="6dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnReviewSeller"
+                style="@style/BtnPrimary"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="40dp"
+                android:text="Rate Seller"
+                android:textSize="12sp"
+                android:layout_marginStart="6dp"/>
+
+        </LinearLayout>
+
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>

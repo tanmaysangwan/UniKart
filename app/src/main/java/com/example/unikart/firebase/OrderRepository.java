@@ -480,31 +480,32 @@ public class OrderRepository {
     // ─── Submit Review ────────────────────────────────────────────────────────
 
     public void submitReview(String orderId, String productId, String revieweeId,
-                             float rating, String comment, OrderCallback callback) {
+                             float rating, String comment, String reviewType, OrderCallback callback) {
         String reviewerId = firebaseManager.getCurrentUserId();
         if (reviewerId == null) { callback.onFailure("Not logged in"); return; }
 
-        // Guard: prevent duplicate reviews for the same order by the same reviewer
+        // Guard: prevent duplicate reviews of the same type for the same order by the same reviewer
         firestore.collection(Constants.COLLECTION_REVIEWS)
                 .whereEqualTo("orderId", orderId)
                 .whereEqualTo("reviewerId", reviewerId)
+                .whereEqualTo("reviewType", reviewType)
                 .limit(1)
                 .get()
                 .addOnSuccessListener(existing -> {
                     if (!existing.isEmpty()) {
-                        callback.onFailure("You have already reviewed this order.");
+                        callback.onFailure("You have already submitted this review.");
                         return;
                     }
-                    doSubmitReview(orderId, productId, revieweeId, rating, comment, reviewerId, callback);
+                    doSubmitReview(orderId, productId, revieweeId, rating, comment, reviewType, reviewerId, callback);
                 })
                 .addOnFailureListener(e -> {
                     // If check fails, proceed anyway (UI already guards this)
-                    doSubmitReview(orderId, productId, revieweeId, rating, comment, reviewerId, callback);
+                    doSubmitReview(orderId, productId, revieweeId, rating, comment, reviewType, reviewerId, callback);
                 });
     }
 
     private void doSubmitReview(String orderId, String productId, String revieweeId,
-                                float rating, String comment, String reviewerId, OrderCallback callback) {
+                                float rating, String comment, String reviewType, String reviewerId, OrderCallback callback) {
 
         // Fetch reviewer info and order info in parallel
         firestore.collection(Constants.COLLECTION_USERS).document(reviewerId).get()
@@ -532,6 +533,7 @@ public class OrderRepository {
                                 data.put("comment", comment != null ? comment : "");
                                 data.put("timestamp", System.currentTimeMillis());
                                 data.put("transactionType", transactionType != null ? transactionType : "");
+                                data.put("reviewType", reviewType != null ? reviewType : Constants.REVIEW_TYPE_PRODUCT);
 
                                 firestore.collection(Constants.COLLECTION_REVIEWS).document(reviewId)
                                         .set(data)
@@ -557,6 +559,7 @@ public class OrderRepository {
                                 data.put("comment", comment != null ? comment : "");
                                 data.put("timestamp", System.currentTimeMillis());
                                 data.put("transactionType", "");
+                                data.put("reviewType", reviewType != null ? reviewType : Constants.REVIEW_TYPE_PRODUCT);
 
                                 firestore.collection(Constants.COLLECTION_REVIEWS).document(reviewId)
                                         .set(data)
@@ -571,6 +574,7 @@ public class OrderRepository {
     }
 
     private void updateUserRating(String userId) {
+        // Count both BUYER and SELLER reviews for overall user rating
         firestore.collection(Constants.COLLECTION_REVIEWS)
                 .whereEqualTo("revieweeId", userId)
                 .get()
@@ -579,8 +583,13 @@ public class OrderRepository {
                     double total = 0;
                     int count = 0;
                     for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snap) {
-                        Double r = doc.getDouble("rating");
-                        if (r != null) { total += r; count++; }
+                        String reviewType = doc.getString("reviewType");
+                        // Only count BUYER and SELLER reviews, not PRODUCT reviews
+                        if (Constants.REVIEW_TYPE_BUYER.equals(reviewType) || 
+                            Constants.REVIEW_TYPE_SELLER.equals(reviewType)) {
+                            Double r = doc.getDouble("rating");
+                            if (r != null) { total += r; count++; }
+                        }
                     }
                     if (count == 0) return;
                     double avg = total / count;
@@ -607,6 +616,21 @@ public class OrderRepository {
                 .addOnFailureListener(e -> callback.onResult(false)); // fail open — guard in submit too
     }
 
+    /**
+     * Check if a specific review type has been submitted for an order by a reviewer.
+     * Used to prevent duplicate reviews of the same type.
+     */
+    public void hasReviewedOrderByType(String orderId, String reviewerId, String reviewType, HasReviewedCallback callback) {
+        firestore.collection(Constants.COLLECTION_REVIEWS)
+                .whereEqualTo("orderId", orderId)
+                .whereEqualTo("reviewerId", reviewerId)
+                .whereEqualTo("reviewType", reviewType)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(snap -> callback.onResult(!snap.isEmpty()))
+                .addOnFailureListener(e -> callback.onResult(false));
+    }
+
     // ─── Get Reviews for User ─────────────────────────────────────────────────
 
     public interface ReviewListCallback {
@@ -622,6 +646,7 @@ public class OrderRepository {
         }
         firestore.collection(Constants.COLLECTION_REVIEWS)
                 .whereEqualTo("productId", productId)
+                .whereEqualTo("reviewType", Constants.REVIEW_TYPE_PRODUCT)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener(snap -> {
@@ -635,6 +660,7 @@ public class OrderRepository {
                     Log.w(TAG, "getReviewsForProduct ordered failed, trying fallback", e);
                     firestore.collection(Constants.COLLECTION_REVIEWS)
                             .whereEqualTo("productId", productId)
+                            .whereEqualTo("reviewType", Constants.REVIEW_TYPE_PRODUCT)
                             .get()
                             .addOnSuccessListener(snap2 -> {
                                 List<Review> list = new ArrayList<>();
@@ -651,6 +677,7 @@ public class OrderRepository {
     public void getReviewsForUser(String userId, ReviewListCallback callback) {
         firestore.collection(Constants.COLLECTION_REVIEWS)
                 .whereEqualTo("revieweeId", userId)
+                .whereEqualTo("reviewType", Constants.REVIEW_TYPE_BUYER)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener(snap -> {
@@ -671,6 +698,7 @@ public class OrderRepository {
     private void getReviewsForUserFallback(String userId, ReviewListCallback callback) {
         firestore.collection(Constants.COLLECTION_REVIEWS)
                 .whereEqualTo("revieweeId", userId)
+                .whereEqualTo("reviewType", Constants.REVIEW_TYPE_BUYER)
                 .get()
                 .addOnSuccessListener(snap -> {
                     List<Review> list = new ArrayList<>();
@@ -688,6 +716,94 @@ public class OrderRepository {
                 });
     }
 
+    /** Fetches all seller reviews for a specific user (reviews about them as a seller). */
+    public void getSellerReviewsForUser(String userId, ReviewListCallback callback) {
+        firestore.collection(Constants.COLLECTION_REVIEWS)
+                .whereEqualTo("revieweeId", userId)
+                .whereEqualTo("reviewType", Constants.REVIEW_TYPE_SELLER)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(snap -> {
+                    List<Review> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snap) {
+                        Review r = mapReviewDoc(doc);
+                        list.add(r);
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "getSellerReviewsForUser with orderBy failed, trying fallback", e);
+                    getSellerReviewsForUserFallback(userId, callback);
+                });
+    }
+
+    private void getSellerReviewsForUserFallback(String userId, ReviewListCallback callback) {
+        firestore.collection(Constants.COLLECTION_REVIEWS)
+                .whereEqualTo("revieweeId", userId)
+                .whereEqualTo("reviewType", Constants.REVIEW_TYPE_SELLER)
+                .get()
+                .addOnSuccessListener(snap -> {
+                    List<Review> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snap) {
+                        Review r = mapReviewDoc(doc);
+                        list.add(r);
+                    }
+                    list.sort((a, b) -> Long.compare(b.getTimestamp(), a.getTimestamp()));
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "getSellerReviewsForUserFallback also failed", e);
+                    callback.onFailure("Could not load reviews");
+                });
+    }
+
+    /** Fetches ALL reviews for a user (both as buyer and seller). */
+    public void getAllReviewsForUser(String userId, ReviewListCallback callback) {
+        firestore.collection(Constants.COLLECTION_REVIEWS)
+                .whereEqualTo("revieweeId", userId)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(snap -> {
+                    List<Review> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snap) {
+                        Review r = mapReviewDoc(doc);
+                        // Only include BUYER and SELLER reviews, not PRODUCT reviews
+                        if (Constants.REVIEW_TYPE_BUYER.equals(r.getReviewType()) || 
+                            Constants.REVIEW_TYPE_SELLER.equals(r.getReviewType())) {
+                            list.add(r);
+                        }
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "getAllReviewsForUser with orderBy failed, trying fallback", e);
+                    getAllReviewsForUserFallback(userId, callback);
+                });
+    }
+
+    private void getAllReviewsForUserFallback(String userId, ReviewListCallback callback) {
+        firestore.collection(Constants.COLLECTION_REVIEWS)
+                .whereEqualTo("revieweeId", userId)
+                .get()
+                .addOnSuccessListener(snap -> {
+                    List<Review> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snap) {
+                        Review r = mapReviewDoc(doc);
+                        // Only include BUYER and SELLER reviews, not PRODUCT reviews
+                        if (Constants.REVIEW_TYPE_BUYER.equals(r.getReviewType()) || 
+                            Constants.REVIEW_TYPE_SELLER.equals(r.getReviewType())) {
+                            list.add(r);
+                        }
+                    }
+                    list.sort((a, b) -> Long.compare(b.getTimestamp(), a.getTimestamp()));
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "getAllReviewsForUserFallback also failed", e);
+                    callback.onFailure("Could not load reviews");
+                });
+    }
+
     private Review mapReviewDoc(com.google.firebase.firestore.QueryDocumentSnapshot doc) {
         Review r = new Review();
         r.setReviewId(safeStr(doc, "reviewId", doc.getId()));
@@ -699,6 +815,7 @@ public class OrderRepository {
         r.setReviewerProfilePic(safeStr(doc, "reviewerProfilePic", ""));
         r.setRevieweeId(safeStr(doc, "revieweeId", ""));
         r.setTransactionType(safeStr(doc, "transactionType", ""));
+        r.setReviewType(safeStr(doc, "reviewType", Constants.REVIEW_TYPE_PRODUCT));
         Double rating = doc.getDouble("rating");
         r.setRating(rating != null ? rating.floatValue() : 0f);
         r.setComment(safeStr(doc, "comment", ""));

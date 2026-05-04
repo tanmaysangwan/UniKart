@@ -58,6 +58,18 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
             holder.tvComment.setVisibility(View.GONE);
         }
 
+        // Review Type Badge (Buyer/Seller)
+        String reviewType = review.getReviewType();
+        if (Constants.REVIEW_TYPE_BUYER.equals(reviewType)) {
+            holder.tvReviewType.setText("📦 As Buyer");
+            holder.tvReviewType.setVisibility(View.VISIBLE);
+        } else if (Constants.REVIEW_TYPE_SELLER.equals(reviewType)) {
+            holder.tvReviewType.setText("🏪 As Seller");
+            holder.tvReviewType.setVisibility(View.VISIBLE);
+        } else {
+            holder.tvReviewType.setVisibility(View.GONE);
+        }
+
         // Product info
         if (review.getProductTitle() != null && !review.getProductTitle().isEmpty()) {
             holder.layoutProductInfo.setVisibility(View.VISIBLE);
@@ -147,6 +159,7 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
         LinearLayout layoutProductInfo;
         TextView tvProductTitle;
         TextView tvTransactionType;
+        TextView tvReviewType;
         TextView tvDate;
 
         public ReviewViewHolder(@NonNull View itemView) {
@@ -159,6 +172,7 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
             layoutProductInfo = itemView.findViewById(R.id.layoutProductInfo);
             tvProductTitle = itemView.findViewById(R.id.tvProductTitle);
             tvTransactionType = itemView.findViewById(R.id.tvTransactionType);
+            tvReviewType = itemView.findViewById(R.id.tvReviewType);
             tvDate = itemView.findViewById(R.id.tvDate);
         }
     }
