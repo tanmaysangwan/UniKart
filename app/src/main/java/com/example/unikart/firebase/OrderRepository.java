@@ -130,25 +130,42 @@ public class OrderRepository {
     // ─── Update Order Status ──────────────────────────────────────────────────
 
     public void updateOrderStatus(String orderId, String newStatus, OrderCallback callback) {
-        Map<String, Object> update = new HashMap<>();
-        update.put("status", newStatus);
-        update.put("updatedAt", System.currentTimeMillis());
+        // First, get the order to extract product info
+        firestore.collection(Constants.COLLECTION_ORDERS).document(orderId).get()
+                .addOnSuccessListener(orderDoc -> {
+                    if (!orderDoc.exists()) {
+                        callback.onFailure("Order not found");
+                        return;
+                    }
+                    
+                    String productId = orderDoc.getString("productId");
+                    String orderType = orderDoc.getString("type");
+                    
+                    // Now update the order status
+                    Map<String, Object> update = new HashMap<>();
+                    update.put("status", newStatus);
+                    update.put("updatedAt", System.currentTimeMillis());
 
-        firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
-                .update(update)
-                .addOnSuccessListener(v -> {
-                    Log.d(TAG, "Order " + orderId + " → " + newStatus);
-                    
-                    // Update product availability based on status
-                    updateProductAvailabilityForOrder(orderId, newStatus);
-                    
-                    // Send push notification to the relevant party
-                    sendOrderStatusNotification(orderId, newStatus);
-                    callback.onSuccess(newStatus);
+                    firestore.collection(Constants.COLLECTION_ORDERS).document(orderId)
+                            .update(update)
+                            .addOnSuccessListener(v -> {
+                                Log.d(TAG, "Order " + orderId + " → " + newStatus);
+                                
+                                // Update product availability based on status
+                                updateProductAvailability(productId, orderType, newStatus);
+                                
+                                // Send push notification to the relevant party
+                                sendOrderStatusNotification(orderId, newStatus);
+                                callback.onSuccess(newStatus);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "updateOrderStatus failed", e);
+                                callback.onFailure("Failed to update order: " + e.getMessage());
+                            });
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "updateOrderStatus failed", e);
-                    callback.onFailure("Failed to update order: " + e.getMessage());
+                    Log.e(TAG, "Failed to fetch order", e);
+                    callback.onFailure("Failed to fetch order: " + e.getMessage());
                 });
     }
     
@@ -158,41 +175,35 @@ public class OrderRepository {
      * - RETURNED: mark available again (rental item returned and ready to rent again)
      * - COMPLETED (BUY): stays unavailable (item sold, seller must manually re-list if needed)
      */
-    private void updateProductAvailabilityForOrder(String orderId, String newStatus) {
-        firestore.collection(Constants.COLLECTION_ORDERS).document(orderId).get()
-                .addOnSuccessListener(doc -> {
-                    if (!doc.exists()) return;
-                    
-                    String productId = doc.getString("productId");
-                    if (productId == null || productId.isEmpty()) return;
-                    
-                    String orderType = doc.getString("type");
-                    
-                    Map<String, Object> productUpdate = new HashMap<>();
-                    
-                    if (Constants.ORDER_STATUS_ACCEPTED.equals(newStatus)) {
-                        // Mark unavailable when order is accepted
-                        productUpdate.put("available", false);
-                        firestore.collection(Constants.COLLECTION_PRODUCTS).document(productId)
-                                .update(productUpdate)
-                                .addOnSuccessListener(v2 -> 
-                                    Log.d(TAG, "Product " + productId + " marked unavailable"))
-                                .addOnFailureListener(e -> 
-                                    Log.w(TAG, "Failed to update product availability", e));
-                    } else if (Constants.ORDER_STATUS_RETURNED.equals(newStatus) 
-                            && Constants.PRODUCT_TYPE_RENT.equals(orderType)) {
-                        // Mark available again when rental item is returned
-                        productUpdate.put("available", true);
-                        firestore.collection(Constants.COLLECTION_PRODUCTS).document(productId)
-                                .update(productUpdate)
-                                .addOnSuccessListener(v2 -> 
-                                    Log.d(TAG, "Product " + productId + " marked available after return"))
-                                .addOnFailureListener(e -> 
-                                    Log.w(TAG, "Failed to update product availability", e));
-                    }
-                    // For COMPLETED (BUY orders), product stays unavailable - seller must manually re-list
-                })
-                .addOnFailureListener(e -> Log.w(TAG, "Could not fetch order for availability update", e));
+    private void updateProductAvailability(String productId, String orderType, String newStatus) {
+        if (productId == null || productId.isEmpty()) {
+            Log.w(TAG, "updateProductAvailability: productId is null or empty");
+            return;
+        }
+        
+        Map<String, Object> productUpdate = new HashMap<>();
+        
+        if (Constants.ORDER_STATUS_ACCEPTED.equals(newStatus)) {
+            // Mark unavailable when order is accepted
+            productUpdate.put("available", false);
+            firestore.collection(Constants.COLLECTION_PRODUCTS).document(productId)
+                    .update(productUpdate)
+                    .addOnSuccessListener(v2 -> 
+                        Log.d(TAG, "✓ Product " + productId + " marked UNAVAILABLE"))
+                    .addOnFailureListener(e -> 
+                        Log.e(TAG, "✗ Failed to mark product unavailable: " + productId, e));
+        } else if (Constants.ORDER_STATUS_RETURNED.equals(newStatus) 
+                && Constants.PRODUCT_TYPE_RENT.equals(orderType)) {
+            // Mark available again when rental item is returned
+            productUpdate.put("available", true);
+            firestore.collection(Constants.COLLECTION_PRODUCTS).document(productId)
+                    .update(productUpdate)
+                    .addOnSuccessListener(v2 -> 
+                        Log.d(TAG, "✓ Product " + productId + " marked AVAILABLE after return"))
+                    .addOnFailureListener(e -> 
+                        Log.e(TAG, "✗ Failed to mark product available: " + productId, e));
+        }
+        // For COMPLETED (BUY orders), product stays unavailable - seller must manually re-list
     }
 
     /**
